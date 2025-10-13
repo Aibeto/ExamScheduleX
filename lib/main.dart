@@ -107,107 +107,197 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // 消息显示区域
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            child: const Text(
-              '沉着应对，冷静答题。',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          // 当前时间显示
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: const Text(
-              '当前时间: 00:00:00',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
-          // 当前考试信息区域
-          Card(
-            margin: const EdgeInsets.all(16.0),
-            child: Container(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 消息显示区域
+            Container(
               padding: const EdgeInsets.all(16.0),
-              child: const Column(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: const Text(
+                '沉着应对，冷静答题。',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // 主要内容区域 - 分为左右两列
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '当前科目: 语文',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  // 左侧列 - 当前时间及考试信息
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        // 当前时间显示
+                        Container(
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(8.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: const Column(
+                            children: [
+                              Text(
+                                '当前时间',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '00:00:00',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // 当前考试信息区域
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(16.0),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardColor,
+                              borderRadius: BorderRadius.circular(8.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  spreadRadius: 1,
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '当前科目: 语文',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text('考试时间: 07:20 - 09:50'),
+                                SizedBox(height: 8),
+                                Text('剩余时间: 01:30:00'),
+                                SizedBox(height: 8),
+                                Text('状态: 考试中'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text('考试时间: 07:20 - 09:50'),
-                  SizedBox(height: 8),
-                  Text('剩余时间: 01:30:00'),
-                  SizedBox(height: 8),
-                  Text('状态: 考试中'),
+                  
+                  const SizedBox(width: 16),
+                  
+                  // 右侧列 - 考试安排表格
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        // 表头
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor,
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(8.0)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  '时间',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  '科目',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  '开始',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  '结束',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  '状态',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 表格内容
+                        Expanded(
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(0),
+                            itemCount: exams.length,
+                            itemBuilder: (context, index) {
+                              return ExamRow(exam: exams[index]);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          // 考试安排表格
-          Expanded(
-            child: Column(
-              children: [
-                // 表头
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: const Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '时间',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '科目',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '开始',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '结束',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Text(
-                          '状态',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 表格内容
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16.0),
-                    itemCount: exams.length,
-                    itemBuilder: (context, index) {
-                      return ExamRow(exam: exams[index]);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
