@@ -30,6 +30,12 @@ class ExamScheduleHomePage extends StatefulWidget {
 }
 
 class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
+  // 当前时间
+  String _getCurrentTime() {
+    // 实际应用中这里会是真实的时间
+    return "00:00:00";
+  }
+
   // 考试数据，基于exam_config.json
   final List<Exam> exams = [
     Exam(
@@ -85,6 +91,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false, // 防止键盘弹出时布局变化
       appBar: AppBar(
         title: const Text('高三一调'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -116,18 +123,25 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
           children: [
             // 消息显示区域
             Container(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(16.0),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 1.5,
+                ),
               ),
               child: const Text(
                 '沉着应对，冷静答题。',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 20, 
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             
             // 主要内容区域 - 分为左右两列
             Expanded(
@@ -141,73 +155,117 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                       children: [
                         // 当前时间显示
                         Container(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(24.0),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor,
-                            borderRadius: BorderRadius.circular(8.0),
+                            gradient: LinearGradient(
+                              colors: [
+                                Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                                Theme.of(context).colorScheme.primary,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16.0),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.2),
-                                spreadRadius: 1,
-                                blurRadius: 5,
-                                offset: const Offset(0, 3),
+                                color: Colors.grey.withOpacity(0.3),
+                                spreadRadius: 2,
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
                               ),
                             ],
                           ),
-                          child: const Column(
+                          child: Column(
                             children: [
-                              Text(
+                              const Text(
                                 '当前时间',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 16),
                               Text(
-                                '00:00:00',
-                                style: TextStyle(
-                                  fontSize: 24,
+                                _getCurrentTime(),
+                                style: const TextStyle(
+                                  fontSize: 32,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         
                         // 当前考试信息区域
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.all(24.0),
                             decoration: BoxDecoration(
                               color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(8.0),
+                              borderRadius: BorderRadius.circular(16.0),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 1,
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 3),
+                                  color: Colors.grey.withOpacity(0.3),
+                                  spreadRadius: 2,
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
                                 ),
                               ],
                             ),
-                            child: const Column(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   '当前科目: 语文',
                                   style: TextStyle(
-                                    fontSize: 20,
+                                    fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                SizedBox(height: 8),
-                                Text('考试时间: 07:20 - 09:50'),
-                                SizedBox(height: 8),
-                                Text('剩余时间: 01:30:00'),
-                                SizedBox(height: 8),
-                                Text('状态: 考试中'),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  '考试时间: 07:20 - 09:50',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  '剩余时间: 01:30:00',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  '状态: 考试中',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                
+                                // 切换显示模式按钮
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.swap_horiz,
+                                      size: 36,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -226,11 +284,18 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                         // 表头
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 8.0),
+                              horizontal: 24.0, vertical: 16.0),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
+                            gradient: LinearGradient(
+                              colors: [
+                                Theme.of(context).colorScheme.primary,
+                                Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                             borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(8.0)),
+                                top: Radius.circular(16.0)),
                           ),
                           child: const Row(
                             children: [
@@ -240,7 +305,8 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                   '时间',
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                      color: Colors.white,
+                                      fontSize: 18),
                                 ),
                               ),
                               Expanded(
@@ -249,7 +315,8 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                   '科目',
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                      color: Colors.white,
+                                      fontSize: 18),
                                 ),
                               ),
                               Expanded(
@@ -258,7 +325,8 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                   '开始',
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                      color: Colors.white,
+                                      fontSize: 18),
                                 ),
                               ),
                               Expanded(
@@ -267,7 +335,8 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                   '结束',
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                      color: Colors.white,
+                                      fontSize: 18),
                                 ),
                               ),
                               Expanded(
@@ -276,7 +345,8 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                   '状态',
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                      color: Colors.white,
+                                      fontSize: 18),
                                 ),
                               ),
                             ],
@@ -284,12 +354,27 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                         ),
                         // 表格内容
                         Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(0),
-                            itemCount: exams.length,
-                            itemBuilder: (context, index) {
-                              return ExamRow(exam: exams[index]);
-                            },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardColor,
+                              borderRadius: const BorderRadius.vertical(
+                                  bottom: Radius.circular(16.0)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.3),
+                                  spreadRadius: 1,
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(0),
+                              itemCount: exams.length,
+                              itemBuilder: (context, index) {
+                                return ExamRow(exam: exams[index]);
+                              },
+                            ),
                           ),
                         ),
                       ],
@@ -358,34 +443,67 @@ class ExamRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8.0),
+    return Container(
+      decoration: BoxDecoration(
+        border: const Border(
+          bottom: BorderSide(
+            color: Colors.grey,
+            width: 0.5,
+          ),
+        ),
+        color: (exam.name == '语文') 
+          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+          : Colors.transparent,
+      ),
       child: Container(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
             Expanded(
               flex: 2,
               child: Text(
                 '${exam.start.month}/${exam.start.day}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
             Expanded(
               flex: 2,
-              child: Text(exam.name),
+              child: Text(
+                exam.name,
+                style: const TextStyle(
+                  fontSize: 16,
+                ),
+              ),
             ),
             Expanded(
               flex: 2,
-              child: Text(_formatTime(exam.start)),
+              child: Text(
+                _formatTime(exam.start),
+                style: const TextStyle(
+                  fontSize: 16,
+                ),
+              ),
             ),
             Expanded(
               flex: 2,
-              child: Text(_formatTime(exam.end)),
+              child: Text(
+                _formatTime(exam.end),
+                style: const TextStyle(
+                  fontSize: 16,
+                ),
+              ),
             ),
-            const Expanded(
+            Expanded(
               flex: 1,
-              child: Text('未开始'),
+              child: Text(
+                '未开始',
+                style: const TextStyle(
+                  fontSize: 16,
+                ),
+              ),
             ),
           ],
         ),
