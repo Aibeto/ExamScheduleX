@@ -2,7 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   // 设置系统UI样式
@@ -51,6 +54,12 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
   String _reminderSubtitle = '';
   // 添加全屏状态变量
   bool _isFullScreen = false;
+  // 添加考试配置数据
+  ExamConfig? _examConfig;
+  // 添加加载状态
+  bool _isLoading = true;
+  // 添加错误信息
+  String _errorMessage = '';
   
   // 当前时间
   String _getCurrentTime() {
@@ -60,7 +69,16 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
 
   // 获取当前或下一个考试
   Exam? _getCurrentOrNextExam() {
+    if (_examConfig == null) return null;
+    
     final now = DateTime.now();
+    final exams = _examConfig!.examInfos.map((info) => Exam(
+      name: info.name,
+      start: DateTime.parse(info.start),
+      end: DateTime.parse(info.end),
+      alertTime: info.alertTime,
+    )).toList();
+    
     // 查找正在进行的考试
     for (final exam in exams) {
       if (exam.start.isBefore(now) && exam.end.isAfter(now)) {
@@ -120,6 +138,15 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
 
   // 检查是否需要显示提醒
   void _checkReminders() {
+    if (_examConfig == null) return;
+    
+    final exams = _examConfig!.examInfos.map((info) => Exam(
+      name: info.name,
+      start: DateTime.parse(info.start),
+      end: DateTime.parse(info.end),
+      alertTime: info.alertTime,
+    )).toList();
+    
     final now = DateTime.now();
     for (final exam in exams) {
       // 检查考试前15分钟提醒
@@ -146,61 +173,54 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
     }
   }
 
-  // 考试数据，基于exam_config.json
-  final List<Exam> exams = [
-    Exam(
-      name: '语文',
-      start: DateTime(2025, 9, 5, 7, 20),
-      end: DateTime(2025, 9, 5, 9, 50),
-      alertTime: 15,
-    ),
-    Exam(
-      name: '物理',
-      start: DateTime(2025, 9, 5, 10, 20),
-      end: DateTime(2025, 9, 5, 11, 50),
-      alertTime: 15,
-    ),
-    Exam(
-      name: '数学',
-      start: DateTime(2025, 9, 5, 14, 10),
-      end: DateTime(2025, 9, 5, 16, 10),
-      alertTime: 15,
-    ),
-    Exam(
-      name: '历史',
-      start: DateTime(2025, 9, 5, 16, 30),
-      end: DateTime(2025, 9, 5, 18, 0),
-      alertTime: 15,
-    ),
-    Exam(
-      name: '英语',
-      start: DateTime(2025, 9, 6, 7, 50),
-      end: DateTime(2025, 9, 6, 9, 50),
-      alertTime: 15,
-    ),
-    Exam(
-      name: '化学',
-      start: DateTime(2025, 9, 6, 10, 20),
-      end: DateTime(2025, 9, 6, 11, 50),
-      alertTime: 15,
-    ),
-    Exam(
-      name: '政治/生物',
-      start: DateTime(2025, 9, 6, 14, 10),
-      end: DateTime(2025, 9, 6, 15, 40),
-      alertTime: 15,
-    ),
-    Exam(
-      name: '地理',
-      start: DateTime(2025, 9, 6, 16, 10),
-      end: DateTime(2025, 9, 6, 17, 40),
-      alertTime: 15,
-    ),
-  ];
+  // 从文件加载考试配置
+  Future<void> _loadExamConfig() async {
+    try {
+      // 获取应用文档目录
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '${directory.path}/exam_config.json';
+      final file = File(path);
+      
+      // 检查文件是否存在
+      if (await file.exists()) {
+        // 从文件读取数据
+        final jsonString = await file.readAsString();
+        final jsonData = json.decode(jsonString);
+        setState(() {
+          _examConfig = ExamConfig.fromJson(jsonData);
+          _isLoading = false;
+        });
+      } else {
+        // 如果文件不存在，尝试从assets目录复制
+        setState(() {
+          _errorMessage = '未找到考试配置文件';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = '加载考试配置失败: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // 考试数据列表
+  List<Exam> get _exams {
+    if (_examConfig == null) return [];
+    return _examConfig!.examInfos.map((info) => Exam(
+      name: info.name,
+      start: DateTime.parse(info.start),
+      end: DateTime.parse(info.end),
+      alertTime: info.alertTime,
+    )).toList();
+  }
 
   @override
   void initState() {
     super.initState();
+    // 加载考试配置
+    _loadExamConfig();
     // 启动定时器，每秒更新一次时间显示
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
@@ -225,7 +245,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
     return Scaffold(
       resizeToAvoidBottomInset: false, // 防止键盘弹出时布局变化
       appBar: AppBar(
-        title: const Text('高三一调'),
+        title: Text(_examConfig?.examName ?? '考试安排'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
@@ -277,9 +297,25 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage.isNotEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_errorMessage, style: const TextStyle(color: Colors.red)),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadExamConfig,
+                          child: const Text('重新加载'),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                 // 消息显示区域
                 Container(
                   padding: const EdgeInsets.all(20.0),
@@ -291,9 +327,9 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                       width: 1.5,
                     ),
                   ),
-                  child: const Text(
-                    '沉着应对，冷静答题。',
-                    style: TextStyle(
+                  child: Text(
+                    _examConfig?.message ?? '沉着应对，冷静答题。',
+                    style: const TextStyle(
                       fontSize: 20, 
                       fontWeight: FontWeight.bold,
                     ),
@@ -537,9 +573,9 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                 ),
                                 child: ListView.builder(
                                   padding: const EdgeInsets.all(0),
-                                  itemCount: exams.length,
+                                  itemCount: _exams.length,
                                   itemBuilder: (context, index) {
-                                    return ExamRow(exam: exams[index]);
+                                    return ExamRow(exam: _exams[index]);
                                   },
                                 ),
                               ),
@@ -656,6 +692,55 @@ class Exam {
     required this.end,
     required this.alertTime,
   });
+}
+
+class ExamConfig {
+  final String examName;
+  final String message;
+  final List<ExamInfo> examInfos;
+
+  ExamConfig({
+    required this.examName,
+    required this.message,
+    required this.examInfos,
+  });
+
+  factory ExamConfig.fromJson(Map<String, dynamic> json) {
+    var examInfosList = json['examInfos'] as List;
+    List<ExamInfo> examInfos = examInfosList.map((e) => ExamInfo.fromJson(e)).toList();
+
+    return ExamConfig(
+      examName: json['examName'],
+      message: json['message'],
+      examInfos: examInfos,
+    );
+  }
+}
+
+class ExamInfo {
+  final String name;
+  final String start;
+  final String end;
+  final int alertTime;
+  final List<dynamic> materials;
+
+  ExamInfo({
+    required this.name,
+    required this.start,
+    required this.end,
+    required this.alertTime,
+    required this.materials,
+  });
+
+  factory ExamInfo.fromJson(Map<String, dynamic> json) {
+    return ExamInfo(
+      name: json['name'],
+      start: json['start'],
+      end: json['end'],
+      alertTime: json['alertTime'],
+      materials: json['materials'],
+    );
+  }
 }
 
 class ExamRow extends StatelessWidget {
