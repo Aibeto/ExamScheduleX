@@ -5,6 +5,17 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 void main() {
+  // 设置系统UI样式
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.black,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+  
   runApp(const ExamScheduleApp());
 }
 
@@ -236,6 +247,14 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                   SystemUiMode.edgeToEdge,
                 );
               }
+              
+              // 显示提示信息
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_isFullScreen ? '已进入全屏模式' : '已退出全屏模式'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
             },
           ),
           IconButton(
