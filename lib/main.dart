@@ -7,7 +7,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
-void main() {
+void main() async {
   // 设置系统UI样式
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
@@ -18,6 +18,14 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
+  
+  // 打印应用文档目录路径
+  try {
+    final directory = await getApplicationDocumentsDirectory();
+    print('应用文档目录路径: ${directory.path}');
+  } catch (e) {
+    print('获取应用文档目录失败: $e');
+  }
   
   runApp(const ExamScheduleApp());
 }
@@ -181,6 +189,9 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
       final path = '${directory.path}/exam_config.json';
       final file = File(path);
       
+      // 打印路径以便调试
+      print('尝试从以下路径加载考试配置文件: $path');
+      
       // 检查文件是否存在
       if (await file.exists()) {
         // 从文件读取数据
@@ -190,18 +201,21 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
           _examConfig = ExamConfig.fromJson(jsonData);
           _isLoading = false;
         });
+        print('成功加载考试配置文件');
       } else {
         // 如果文件不存在，尝试从assets目录复制
         setState(() {
-          _errorMessage = '未找到考试配置文件';
+          _errorMessage = '未找到考试配置文件: $path';
           _isLoading = false;
         });
+        print('考试配置文件不存在: $path');
       }
     } catch (e) {
       setState(() {
         _errorMessage = '加载考试配置失败: $e';
         _isLoading = false;
       });
+      print('加载考试配置失败: $e');
     }
   }
 
