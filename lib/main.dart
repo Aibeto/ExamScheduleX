@@ -237,14 +237,16 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
               });
               
               if (_isFullScreen) {
-                // 进入全屏模式
+                // 进入全屏模式 - 隐藏所有系统UI
                 SystemChrome.setEnabledSystemUIMode(
-                  SystemUiMode.immersiveSticky,
+                  SystemUiMode.manual,
+                  overlays: [],
                 );
               } else {
-                // 退出全屏模式
+                // 退出全屏模式 - 显示系统UI
                 SystemChrome.setEnabledSystemUIMode(
-                  SystemUiMode.edgeToEdge,
+                  SystemUiMode.manual,
+                  overlays: SystemUiOverlay.values,
                 );
               }
               
