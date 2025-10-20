@@ -8,8 +8,10 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() async {
-  // 设置系统UI样式
+  // 确保Flutter框架完全初始化
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 设置系统UI样式
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -18,14 +20,6 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
-  
-  // 打印应用文档目录路径
-  try {
-    final directory = await getApplicationDocumentsDirectory();
-    print('应用文档目录路径: ${directory.path}');
-  } catch (e) {
-    print('获取应用文档目录失败: $e');
-  }
   
   runApp(const ExamScheduleApp());
 }
@@ -184,9 +178,26 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
   // 从文件加载考试配置
   Future<void> _loadExamConfig() async {
     try {
-      // 获取应用文档目录
-      final directory = await getApplicationDocumentsDirectory();
-      final path = '${directory.path}/exam_config.json';
+      // 添加延迟确保插件初始化完成
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // 修改路径为系统根目录
+      String path;
+      if (Platform.isWindows) {
+        // Windows系统根目录
+        path = 'C:/exam_config.json';
+      } else if (Platform.isLinux) {
+        // Linux系统根目录
+        path = '/exam_config.json';
+      } else if (Platform.isMacOS) {
+        // macOS系统根目录
+        path = '/exam_config.json';
+      } else {
+        // 其他平台回退到应用文档目录
+        final directory = await getApplicationDocumentsDirectory();
+        path = '${directory.path}/exam_config.json';
+      }
+      
       final file = File(path);
       
       // 打印路径以便调试
@@ -203,13 +214,20 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
         });
         print('成功加载考试配置文件');
       } else {
-        // 如果文件不存在，尝试从assets目录复制
+        // 如果文件不存在，使用默认数据
         setState(() {
           _errorMessage = '未找到考试配置文件: $path';
           _isLoading = false;
         });
         print('考试配置文件不存在: $path');
       }
+    } on MissingPluginException catch (e) {
+      // 处理插件未找到异常
+      print('插件异常: $e');
+      setState(() {
+        _errorMessage = '插件初始化失败，请重启应用';
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = '加载考试配置失败: $e';
