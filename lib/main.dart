@@ -150,29 +150,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
     )).toList();
     
     final now = DateTime.now();
-    for (final exam in exams) {
-      // 检查考试前15分钟提醒
-      final reminderTime = exam.start.subtract(Duration(minutes: exam.alertTime));
-      if (now.isAfter(reminderTime) && now.isBefore(exam.start)) {
-        setState(() {
-          _showReminder = true;
-          _reminderTitle = '距离${exam.name}考试还有 ${exam.alertTime} 分钟';
-          _reminderSubtitle = '请准备考试';
-        });
-        return;
-      }
-      
-      // 检查考试结束前15分钟提醒
-      final endReminderTime = exam.end.subtract(Duration(minutes: exam.alertTime));
-      if (now.isAfter(endReminderTime) && now.isBefore(exam.end)) {
-        setState(() {
-          _showReminder = true;
-          _reminderTitle = '距离${exam.name}考试结束还有 ${exam.alertTime} 分钟';
-          _reminderSubtitle = '注意掌握时间';
-        });
-        return;
-      }
-    }
+
   }
 
   // 从文件加载考试配置
