@@ -339,8 +339,16 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                         Text(_errorMessage, style: const TextStyle(color: Colors.red)),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: _loadExamConfig,
-                          child: const Text('重新加载'),
+                          onPressed: () {
+                            // 重启程序
+                            setState(() {
+                              _isLoading = true;
+                              _errorMessage = '';
+                            });
+                            // 重新初始化应用状态
+                            _loadExamConfig();
+                          },
+                          child: const Text('重启程序'),
                         ),
                       ],
                     ),
