@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, avoid_print
 
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -52,8 +52,8 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
   Timer? _timer;
   // 添加提醒对话框相关的状态
   bool _showReminder = false;
-  String _reminderTitle = '';
-  String _reminderSubtitle = '';
+  final String _reminderTitle = '';
+  final String _reminderSubtitle = '';
   // 添加全屏状态变量
   bool _isFullScreen = false;
   // 添加考试配置数据
@@ -142,14 +142,13 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
   void _checkReminders() {
     if (_examConfig == null) return;
     
-    final exams = _examConfig!.examInfos.map((info) => Exam(
+    _examConfig!.examInfos.map((info) => Exam(
       name: info.name,
       start: DateTime.parse(info.start),
       end: DateTime.parse(info.end),
       alertTime: info.alertTime,
     )).toList();
     
-    final now = DateTime.now();
 
   }
 
