@@ -357,11 +357,13 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 10),
                             // 当前时间显示
+                            // 使用装饰性容器展示实时时间，具有渐变背景和阴影效果
                             Container(
-                              padding: const EdgeInsets.all(10.0),
+                              padding: const EdgeInsets.all(19.0),
                               decoration: BoxDecoration(
+                                // 渐变背景色，从左上到右下由浅蓝到深蓝
                                 gradient: LinearGradient(
                                   colors: [
                                     Theme.of(context).colorScheme.primary.withOpacity(0.8),
@@ -371,6 +373,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                   end: Alignment.bottomRight,
                                 ),
                                 borderRadius: BorderRadius.circular(19.0),
+                                // 添加阴影效果增强立体感
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.grey.withOpacity(0.3),
@@ -393,7 +396,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            // const SizedBox(height: 10),
                             
                             // 当前考试信息区域
                             Expanded(
@@ -456,20 +459,20 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
                                     const SizedBox(height: 0),
                                     
                                     // 切换显示模式按钮
-                                    // Align(
-                                    //   alignment: Alignment.centerRight,
-                                    //   child: Container(
-                                    //     decoration: BoxDecoration(
-                                    //       color: Theme.of(context).colorScheme.primary,
-                                    //       shape: BoxShape.circle,
-                                    //     ),
-                                    //     child: const Icon(
-                                    //       Icons.swap_horiz,
-                                    //       size: 36,
-                                    //       color: Colors.white,
-                                    //     ),
-                                    //   ),
-                                    // ),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.swap_horiz,
+                                          size: 0,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
