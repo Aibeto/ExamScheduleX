@@ -49,7 +49,6 @@ class ExamScheduleHomePage extends StatefulWidget {
 
 class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
   // 添加Timer用于更新时间
-  Timer? _timer;
   // 添加提醒对话框相关的状态
   // bool _showReminder = false;
   // final String _reminderTitle = '';
@@ -139,18 +138,6 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
   }
 
   // 检查是否需要显示提醒
-  void _checkReminders() {
-    if (_examConfig == null) return;
-    
-    _examConfig!.examInfos.map((info) => Exam(
-      name: info.name,
-      start: DateTime.parse(info.start),
-      end: DateTime.parse(info.end),
-      alertTime: info.alertTime,
-    )).toList();
-    
-
-  }
 
   // 从文件加载考试配置
   Future<void> _loadExamConfig() async {
@@ -231,12 +218,6 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
     // 加载考试配置
     _loadExamConfig();
     // 启动定时器，每秒更新一次时间显示
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        // 更新UI
-      });
-      _checkReminders();
-    });
   }
 
   // @override
@@ -262,7 +243,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
       appBar: AppBar(
         title: Text(_examConfig?.examName ?? '考试安排'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
+        actions: const [
           // IconButton(
           //   icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen),
           //   onPressed: () {
