@@ -49,6 +49,7 @@ class ExamScheduleHomePage extends StatefulWidget {
 
 class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
   // 添加Timer用于更新时间
+  Timer? _timer;
   // 添加提醒对话框相关的状态
   // bool _showReminder = false;
   // final String _reminderTitle = '';
@@ -218,17 +219,22 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
     // 加载考试配置
     _loadExamConfig();
     // 启动定时器，每秒更新一次时间显示
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        // 更新时间显示
+      });
+    });
   }
 
-  // @override
-  // void dispose() {
-  //   _timer?.cancel(); // 取消定时器以避免内存泄漏
-  //   // 退出全屏模式
-  //   SystemChrome.setEnabledSystemUIMode(
-  //     SystemUiMode.edgeToEdge,
-  //   );
-  //   super.dispose();
-  // }
+  @override
+  void dispose() {
+    _timer?.cancel(); // 取消定时器以避免内存泄漏
+    // 退出全屏模式
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.edgeToEdge,
+    );
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
