@@ -150,7 +150,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
       String path;
       if (Platform.isWindows) {
         // Windows系统根目录
-        path = 'C:/exam_config.json';
+        path = 'C:\\esx\\exam_config.json';
       } else if (Platform.isLinux) {
         // Linux系统根目录
         path = '/exam_config.json';
@@ -163,7 +163,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
         path = '${directory.path}/exam_config.json';
       }
       
-      final file = File(path);
+      File file = File(path);
       
       // 打印路径以便调试
       print('尝试从以下路径加载考试配置文件: $path');
@@ -179,12 +179,30 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> {
         });
         print('成功加载考试配置文件');
       } else {
-        // 如果文件不存在，使用默认数据
-        setState(() {
-          _errorMessage = '未找到考试配置文件: $path';
-          _isLoading = false;
-        });
+        // 如果主路径文件不存在，尝试从应用程序文档目录加载
         print('考试配置文件不存在: $path');
+        final directory = await getApplicationDocumentsDirectory();
+        final fallbackPath = '${directory.path}\\exam_config.json';
+        file = File(fallbackPath);
+        
+        print('尝试从备选路径加载考试配置文件: $fallbackPath');
+        if (await file.exists()) {
+          // 从备选路径读取数据
+          final jsonString = await file.readAsString();
+          final jsonData = json.decode(jsonString);
+          setState(() {
+            _examConfig = ExamConfig.fromJson(jsonData);
+            _isLoading = false;
+          });
+          print('成功从备选路径加载考试配置文件');
+        } else {
+          // 如果备选路径也不存在文件，使用默认数据
+          setState(() {
+            _errorMessage = '未找到考试配置文件: $path 和 $fallbackPath';
+            _isLoading = false;
+          });
+          print('备选考试配置文件也不存在: $fallbackPath');
+        }
       }
     } on MissingPluginException catch (e) {
       // 处理插件未找到异常
