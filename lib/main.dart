@@ -285,58 +285,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
     
     return Scaffold(
       resizeToAvoidBottomInset: false, // 防止键盘弹出时布局变化
-      appBar: AppBar(
-        title: Text(_examConfig?.examName ?? '考试安排'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 5,
-        shadowColor: Colors.black.withOpacity(0.3),
-        actions: const [
-          // IconButton(
-          //   icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen),
-          //   onPressed: () {
-          //     // 全屏功能
-          //     setState(() {
-          //       _isFullScreen = !_isFullScreen;
-          //     });
-              
-          //     if (_isFullScreen) {
-          //       // 进入全屏模式 - 隐藏所有系统UI
-          //       SystemChrome.setEnabledSystemUIMode(
-          //         SystemUiMode.manual,
-          //         overlays: [],
-          //       );
-          //     } else {
-          //       // 退出全屏模式 - 显示系统UI
-          //       SystemChrome.setEnabledSystemUIMode(
-          //         SystemUiMode.manual,
-          //         overlays: SystemUiOverlay.values,
-          //       );
-          //     }
-              
-          //     // 显示提示信息
-          //     ScaffoldMessenger.of(context).showSnackBar(
-          //       SnackBar(
-          //         content: Text(_isFullScreen ? '已进入全屏模式' : '已退出全屏模式'),
-          //         duration: const Duration(seconds: 1),
-          //       ),
-          //     );
-          //   },
-          // ),
-          // IconButton(
-          //   icon: const Icon(Icons.notifications),
-          //   onPressed: () {
-          //     // 提醒设置
-          //   },
-          // ),
-          // IconButton(
-          //   icon: const Icon(Icons.settings),
-          //   onPressed: () {
-          //     // 系统设置
-          //   },
-          // ),
-        ],
-      ),
+      appBar: null, // 移除AppBar
       body: Stack(
         children: [
           Padding(
@@ -394,7 +343,17 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-
+                      // 将标题放在顶部中央位置
+                      Center(
+                        child: Text(
+                          _examConfig?.examName ?? '考试安排',
+                          style: const TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                 
                 // 主要内容区域 - 分为左右两列
                 Expanded(
@@ -403,12 +362,13 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                     children: [
                       // 左侧列 - 当前时间及考试信息
                       Expanded(
-                        flex: 3,
+                        flex: 5,
                         child: Column(
                           children: [
                             // 消息显示区域
                             Container(  
-                              padding: const EdgeInsets.all(20.0),
+                              width: double.infinity, // 设置宽度占满
+                              padding: const EdgeInsets.all(8.0),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
@@ -418,7 +378,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
-                                borderRadius: BorderRadius.circular(16.0),
+                                borderRadius: BorderRadius.circular(19.0),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.grey.withOpacity(0.3),
@@ -429,21 +389,23 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                 ],
                               ),
                               child: Text(
+                                
                                 _examConfig?.message ?? '沉着应对，冷静答题。',
                                 style: const TextStyle(
-                                  fontSize: 30, 
+                                  fontSize: 28, 
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             // 当前时间显示
                             // 使用装饰性容器展示实时时间，具有渐变背景和阴影效果
                             ScaleTransition(
                               scale: _scaleAnimation,
                               child: Container(
+                                width: double.infinity, // 设置宽度占满
                                 padding: const EdgeInsets.all(20.0),
                                 decoration: BoxDecoration(
                                   // 渐变背景色，从左上到右下由浅蓝到深蓝
@@ -470,23 +432,23 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                   children: [
                                     Text(
                                       _getCurrentTime(),
-                                      style: const TextStyle(
-                                        fontSize: 175,
+                                      style: TextStyle(
+                                        fontSize: MediaQuery.of(context).size.width * 0.15, // 根据屏幕宽度自适应字体大小
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                         shadows: [
                                           Shadow(
-                                            offset: Offset(2, 2),
+                                            offset: const Offset(2, 2),
                                             blurRadius: 3,
                                             color: Colors.black26,
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const Text(
+                                    Text(
                                       '当前时间',
                                       style: TextStyle(
-                                        fontSize: 24,
+                                        fontSize: MediaQuery.of(context).size.width * 0.03, // 根据屏幕宽度自适应字体大小
                                         color: Colors.white70,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -495,53 +457,54 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             
                             // 当前考试信息区域
                             Expanded(
                               child: Container(
-                                padding: const EdgeInsets.all(24.0),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Theme.of(context).cardColor,
-                                      Theme.of(context).highlightColor,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.3),
-                                      spreadRadius: 2,
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 5),
-                                    ),
-                                  ],
-                                ),
+                                padding: const EdgeInsets.all(19.0),
+                                // decoration: BoxDecoration(
+                                //   gradient: LinearGradient(
+                                //     colors: [
+                                //       Theme.of(context).cardColor,
+                                //       Theme.of(context).highlightColor,
+                                //     ],
+                                //     begin: Alignment.topLeft,
+                                //     end: Alignment.bottomRight,
+                                //   ),
+                                //   borderRadius: BorderRadius.circular(19.0),
+                                //   boxShadow: [
+                                //     BoxShadow(
+                                //       color: Colors.grey.withOpacity(0.3),
+                                //       spreadRadius: 2,
+                                //       blurRadius: 10,
+                                //       offset: const Offset(0, 5),
+                                //     ),
+                                //   ],
+                                // ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  // crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.school,
-                                          color: Theme.of(context).colorScheme.primary,
-                                          size: 32,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        const Text(
-                                          '当前考试',
-                                          style: TextStyle(
-                                            fontSize: 30,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
+                                    // Row(
+                                    //   children: [
+                                    //     Icon(
+                                    //       Icons.school,
+                                    //       color: Theme.of(context).colorScheme.primary,
+                                    //       size: 32,
+                                    //     ),
+                                    //     const SizedBox(width: 10),
+                                    //     const Text(
+                                    //       '当前考试',
+                                    //       style: TextStyle(
+                                    //         fontSize: 30,
+                                    //         fontWeight: FontWeight.bold,
+                                    //       ),
+                                    //     ),
+                                    //   ],
+                                    // ),
+                                    // const SizedBox(height: 8),
                                     Container(
+                                      width: double.infinity, // 设置宽度占满
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
                                         color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
@@ -596,13 +559,13 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(height: 16),
+                                    // const SizedBox(height: 16),
                                     
                                     // 切换显示模式按钮
-                                    Align(
-                                      alignment: Alignment.center,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(12),
+                                    // Align(
+                                    //   alignment: Alignment.center,
+                                    //   child: Container(
+                                    //     padding: const EdgeInsets.all(12),
                                         // decoration: BoxDecoration(
                                         //   color: Theme.of(context).colorScheme.primary,
                                         //   shape: BoxShape.circle,
@@ -620,8 +583,8 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                         //   size: 30,
                                         //   color: Colors.white,
                                         // ),
-                                      ),
-                                    ),
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
                               ),
@@ -634,7 +597,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                       
                       // 右侧列 - 考试安排表格
                       Expanded(
-                        flex: 2,
+                        flex: 4,
                         child: Column(
                           children: [
                             // 表头
