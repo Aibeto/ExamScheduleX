@@ -34,7 +34,7 @@ class ExamScheduleApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
-        fontFamily: 'SimHei', // 设置默认字体为SimHei
+        fontFamily: 'HarmonyOS_Sans_Medium',
       ),
       home: const ExamScheduleHomePage(),
     );

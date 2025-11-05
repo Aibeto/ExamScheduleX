@@ -78,7 +78,10 @@ flutter:
   fonts:
     - family: SimHei
       fonts:
-        - asset: SIMHEI.TTF
+        - asset: fonts/SIMHEI.TTF
+    - family: Harmony
+      fonts:
+        - asset: fonts/HarmonyOS_Sans_Medium.ttf
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
