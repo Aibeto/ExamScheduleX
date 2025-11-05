@@ -433,26 +433,26 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                     Text(
                                       _getCurrentTime(),
                                       style: TextStyle(
-                                        fontSize: MediaQuery.of(context).size.width * 0.15, // 根据屏幕宽度自适应字体大小
+                                        fontSize: MediaQuery.of(context).size.width * 0.125, // 根据屏幕宽度自适应字体大小
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
-                                        shadows: [
+                                        shadows: const [
                                           Shadow(
-                                            offset: const Offset(2, 2),
+                                            offset: Offset(2, 2),
                                             blurRadius: 3,
                                             color: Colors.black26,
                                           ),
                                         ],
                                       ),
                                     ),
-                                    Text(
-                                      '当前时间',
-                                      style: TextStyle(
-                                        fontSize: MediaQuery.of(context).size.width * 0.03, // 根据屏幕宽度自适应字体大小
-                                        color: Colors.white70,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
+                                    // Text(
+                                    //   '当前时间',
+                                    //   style: TextStyle(
+                                    //     fontSize: MediaQuery.of(context).size.width * 0.03, // 根据屏幕宽度自适应字体大小
+                                    //     color: Colors.white70,
+                                    //     fontWeight: FontWeight.w500,
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
                               ),
