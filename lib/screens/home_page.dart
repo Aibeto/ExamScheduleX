@@ -1,57 +1,15 @@
 // ignore_for_file: deprecated_member_use, avoid_print
 
+import 'package:examschedulex/utils/time_utils.dart';
+import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-
-void main() async {
-  // 确保Flutter框架完全初始化
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // 设置系统UI样式
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.black,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
-  
-  runApp(const ExamScheduleApp());
-}
-
-class ExamScheduleApp extends StatelessWidget {
-  const ExamScheduleApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Exam Schedule',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-        fontFamily: 'HarmonyOS_Sans_Medium',
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(fontWeight: FontWeight.bold),
-          bodyLarge: TextStyle(fontWeight: FontWeight.bold),
-          bodySmall: TextStyle(fontWeight: FontWeight.bold),
-          titleLarge: TextStyle(fontWeight: FontWeight.bold),
-          titleMedium: TextStyle(fontWeight: FontWeight.bold),
-          titleSmall: TextStyle(fontWeight: FontWeight.bold),
-          headlineSmall: TextStyle(fontWeight: FontWeight.bold),
-          headlineMedium: TextStyle(fontWeight: FontWeight.bold),
-          headlineLarge: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      home: const ExamScheduleHomePage(),
-    );
-  }
-}
+import '../models/exam.dart';
+import '../models/exam_config.dart';
+import '../widgets/exam_row.dart';
 
 class ExamScheduleHomePage extends StatefulWidget {
   const ExamScheduleHomePage({super.key});
@@ -475,46 +433,11 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                             Expanded(
                               child: Container(
                                 padding: const EdgeInsets.all(19.0),
-                                // decoration: BoxDecoration(
-                                //   gradient: LinearGradient(
-                                //     colors: [
-                                //       Theme.of(context).cardColor,
-                                //       Theme.of(context).highlightColor,
-                                //     ],
-                                //     begin: Alignment.topLeft,
-                                //     end: Alignment.bottomRight,
-                                //   ),
-                                //   borderRadius: BorderRadius.circular(19.0),
-                                //   boxShadow: [
-                                //     BoxShadow(
-                                //       color: Colors.grey.withOpacity(0.3),
-                                //       spreadRadius: 2,
-                                //       blurRadius: 10,
-                                //       offset: const Offset(0, 5),
-                                //     ),
-                                //   ],
-                                // ),
+                               
                                 child: Column(
                                   // crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Row(
-                                    //   children: [
-                                    //     Icon(
-                                    //       Icons.school,
-                                    //       color: Theme.of(context).colorScheme.primary,
-                                    //       size: 32,
-                                    //     ),
-                                    //     const SizedBox(width: 10),
-                                    //     const Text(
-                                    //       '当前考试',
-                                    //       style: TextStyle(
-                                    //         fontSize: 30,
-                                    //         fontWeight: FontWeight.bold,
-                                    //       ),
-                                    //     ),
-                                    //   ],
-                                    // ),
-                                    // const SizedBox(height: 8),
+                                    
                                     Container(
                                       width: double.infinity, // 设置宽度占满
                                       padding: const EdgeInsets.all(16),
@@ -534,17 +457,17 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                               ? '科目: ${_getCurrentOrNextExam()?.name ?? ""}' 
                                               : '科目: 暂无',
                                             style: const TextStyle(
-                                              fontSize: 26,
+                                              fontSize: 32,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                           const SizedBox(height: 12),
                                           Text(
                                             _getCurrentOrNextExam() != null 
-                                              ? '时间: ${ExamRow._formatTime(_getCurrentOrNextExam()!.start)} - ${ExamRow._formatTime(_getCurrentOrNextExam()!.end)}'
+                                              ? '时间: ${TimeUtils.formatTime(_getCurrentOrNextExam()!.start)} - ${TimeUtils.formatTime(_getCurrentOrNextExam()!.end)}'
                                               : '时间: --:-- - --:--',
                                             style: const TextStyle(
-                                              fontSize: 22,
+                                              fontSize: 26,
                                               height: 1.5,
                                             ),
                                           ),
@@ -554,7 +477,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                               ? _getRemainingTime(_getCurrentOrNextExam()!)
                                               : '剩余时间: --:--:--',
                                             style: const TextStyle(
-                                              fontSize: 22,
+                                              fontSize: 26,
                                               height: 1.5,
                                             ),
                                           ),
@@ -564,39 +487,14 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                                               ? '状态: ${_getExamStatus(_getCurrentOrNextExam()!)}'
                                               : '状态: 无考试',
                                             style: const TextStyle(
-                                              fontSize: 22,
+                                              fontSize: 26,
                                               height: 1.5,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    // const SizedBox(height: 16),
-                                    
-                                    // 切换显示模式按钮
-                                    // Align(
-                                    //   alignment: Alignment.center,
-                                    //   child: Container(
-                                    //     padding: const EdgeInsets.all(12),
-                                        // decoration: BoxDecoration(
-                                        //   color: Theme.of(context).colorScheme.primary,
-                                        //   shape: BoxShape.circle,
-                                        //   boxShadow: [
-                                        //     BoxShadow(
-                                        //       color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
-                                        //       spreadRadius: 1,
-                                        //       blurRadius: 8,
-                                        //       offset: const Offset(0, 3),
-                                        //     ),
-                                        //   ],
-                                        // ),
-                                        // child: const Icon(
-                                        //   Icons.swap_horiz,
-                                        //   size: 30,
-                                        //   color: Colors.white,
-                                        // ),
-                                    //   ),
-                                    // ),
+                                   
                                   ],
                                 ),
                               ),
@@ -638,61 +536,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
                               ),
                               child: const Row(
                                 children: [
-                                  // Expanded(
-                                  //   flex: 2,
-                                  //   child: Text(
-                                  //     '时间',
-                                  //     style: TextStyle(
-                                  //         fontWeight: FontWeight.bold,
-                                  //         color: Colors.white,
-                                  //         fontSize: 22),
-                                  //     textAlign: TextAlign.center,
-                                  //   ),
-                                  // ),
-                                  // Expanded(
-                                  //   flex: 2,
-                                  //   child: Text(
-                                  //     '科目',
-                                  //     style: TextStyle(
-                                  //         fontWeight: FontWeight.bold,
-                                  //         color: Colors.white,
-                                  //         fontSize: 22),
-                                  //     textAlign: TextAlign.center,
-                                  //   ),
-                                  // ),
-                                  // Expanded(
-                                  //   flex: 2,
-                                  //   child: Text(
-                                  //     '开始',
-                                  //     style: TextStyle(
-                                  //         fontWeight: FontWeight.bold,
-                                  //         color: Colors.white,
-                                  //         fontSize: 22),
-                                  //     textAlign: TextAlign.center,
-                                  //   ),
-                                  // ),
-                                  // Expanded(
-                                  //   flex: 2,
-                                  //   child: Text(
-                                  //     '结束',
-                                  //     style: TextStyle(
-                                  //         fontWeight: FontWeight.bold,
-                                  //         color: Colors.white,
-                                  //         fontSize: 22),
-                                  //     textAlign: TextAlign.center,
-                                  //   ),
-                                  // ),
-                                  // Expanded(
-                                  //   flex: 2,
-                                  //   child: Text(
-                                  //     '状态',
-                                  //     style: TextStyle(
-                                  //         fontWeight: FontWeight.bold,
-                                  //         color: Colors.white,
-                                  //         fontSize: 22),
-                                  //     textAlign: TextAlign.center,
-                                  //   ),
-                                  // ),
+                                  
                                 ],
                               ),
                             ),
@@ -730,278 +574,12 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
               ],
             ),
           ),
-          // 提醒对话框
-          // if (_showReminder)
-          //   Container(
-          //     color: Colors.black.withOpacity(0.7),
-          //     child: Center(
-          //       child: Container(
-          //         padding: const EdgeInsets.all(32.0),
-          //         decoration: BoxDecoration(
-          //           color: Theme.of(context).cardColor,
-          //           borderRadius: BorderRadius.circular(16.0),
-          //         ),
-          //         child: Column(
-          //           mainAxisSize: MainAxisSize.min,
-          //           children: [
-          //             Text(
-          //               _reminderTitle,
-          //               style: const TextStyle(
-          //                 fontSize: 32,
-          //                 fontWeight: FontWeight.bold,
-          //               ),
-          //               textAlign: TextAlign.center,
-          //             ),
-          //             const SizedBox(height: 16),
-          //             Text(
-          //               _reminderSubtitle,
-          //               style: const TextStyle(
-          //                 fontSize: 28,
-          //               ),
-          //               textAlign: TextAlign.center,
-          //             ),
-          //             const SizedBox(height: 32),
-          //             ElevatedButton(
-          //               onPressed: () {
-          //                 setState(() {
-          //                   _showReminder = false;
-          //                 });
-          //               },
-          //               style: ElevatedButton.styleFrom(
-          //                 padding: const EdgeInsets.symmetric(
-          //                   horizontal: 32,
-          //                   vertical: 16,
-          //                 ),
-          //                 textStyle: const TextStyle(
-          //                   fontSize: 22,
-          //                 ),
-          //               ),
-          //               child: const Text('确定'),
-          //             )
-          //           ],
-          //         ),
-          //       ),
-          //     ),
-          //   ),
+          
         ],
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () {
-      //     // 返回主页
-      //   },
-      //   child: Icon(Icons.arrow_back, size: baseFontSize * 1.5 * textScaleFactor),
-      // ),
+      
       floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
-      // bottomNavigationBar: BottomAppBar(
-      //   child: Row(
-      //     mainAxisAlignment: MainAxisAlignment.spaceAround,
-      //     children: [
-      //       IconButton(
-      //         icon: Icon(Icons.home, size: baseFontSize * 1.5 * textScaleFactor),
-      //         onPressed: () {
-      //           // 导航到主页
-      //         },
-      //       ),
-      //       IconButton(
-      //         icon: Icon(Icons.calendar_today, size: baseFontSize * 1.5 * textScaleFactor),
-      //         onPressed: () {
-      //           // 导航到日历视图
-      //         },
-      //       ),
-      //       IconButton(
-      //         icon: Icon(Icons.info, size: baseFontSize * 1.5 * textScaleFactor),
-      //         onPressed: () {
-      //           // 显示信息
-      //         },
-      //       ),
-      //     ],
-      //   ),
-      // ),
+      
     );
-  }
-}
-
-class Exam {
-  final String name;
-  final DateTime start;
-  final DateTime end;
-  final int alertTime;
-
-  Exam({
-    required this.name,
-    required this.start,
-    required this.end,
-    required this.alertTime,
-  });
-}
-
-class ExamConfig {
-  final String examName;
-  final String message;
-  final List<ExamInfo> examInfos;
-
-  ExamConfig({
-    required this.examName,
-    required this.message,
-    required this.examInfos,
-  });
-
-  factory ExamConfig.fromJson(Map<String, dynamic> json) {
-    var examInfosList = json['examInfos'] as List;
-    List<ExamInfo> examInfos = examInfosList.map((e) => ExamInfo.fromJson(e)).toList();
-
-    return ExamConfig(
-      examName: json['examName'],
-      message: json['message'],
-      examInfos: examInfos,
-    );
-  }
-}
-
-class ExamInfo {
-  final String name;
-  final String start;
-  final String end;
-  final int alertTime;
-  final List<dynamic> materials;
-
-  ExamInfo({
-    required this.name,
-    required this.start,
-    required this.end,
-    required this.alertTime,
-    required this.materials,
-  });
-
-  factory ExamInfo.fromJson(Map<String, dynamic> json) {
-    return ExamInfo(
-      name: json['name'],
-      start: json['start'],
-      end: json['end'],
-      alertTime: json['alertTime'],
-      materials: json['materials'],
-    );
-  }
-}
-
-class ExamRow extends StatelessWidget {
-  final Exam exam;
-
-  const ExamRow({super.key, required this.exam});
-
-  @override
-  Widget build(BuildContext context) {
-    // 获取考试状态
-    String getStatusText() {
-      final now = DateTime.now();
-      if (now.isBefore(exam.start)) {
-        final diff = exam.start.difference(now);
-        if (diff.inMinutes <= 15) {
-          return '即将开始';
-        }
-        return '未开始';
-      } else if (now.isAfter(exam.end)) {
-        return '已结束';
-      } else {
-        return '考试中';
-      }
-    }
-
-    // 根据状态获取颜色
-    Color getStatusColor() {
-      final status = getStatusText();
-      switch (status) {
-        case '考试中':
-          return Colors.redAccent;
-        case '即将开始':
-          return Colors.orangeAccent;
-        case '未开始':
-          return Theme.of(context).colorScheme.primary;
-        default:
-          return Colors.grey;
-      }
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        border: const Border(
-          bottom: BorderSide(
-            color: Colors.grey,
-            width: 0.5,
-          ),
-        ),
-        color: (getStatusText() == '考试中') 
-          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-          : Colors.transparent,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: Column(
-                children: [
-                  Text(
-                    '${exam.start.month}/${exam.start.day}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  Text(
-                    '${ExamRow._formatTime(exam.start)} - ${ExamRow._formatTime(exam.end)}',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      color: Colors.black,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                exam.name,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                decoration: BoxDecoration(
-                  color: getStatusColor().withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: getStatusColor(),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  getStatusText(),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: getStatusColor(),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _formatTime(DateTime dateTime) {
-    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }
