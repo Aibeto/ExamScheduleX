@@ -228,9 +228,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
     _loadExamConfig();
     // 启动定时器，每秒更新一次时间显示
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        // 更新时间显示
-      });
+      setState((){});
     });
   }
 
