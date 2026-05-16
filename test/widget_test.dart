@@ -13,7 +13,7 @@ import 'package:examschedulex/main.dart';
 void main() {
   testWidgets('Exam schedule app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const ExamScheduleApp());
+    await tester.pumpWidget(const ExamScheduleApp(fontFamily: 'MapleMono',));
 
     // Verify that the app bar title is displayed.
     expect(find.text('高三一调'), findsOneWidget);

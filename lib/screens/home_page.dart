@@ -1,15 +1,17 @@
-// ignore_for_file: deprecated_member_use, avoid_print
-
-import 'package:examschedulex/utils/time_utils.dart';
-import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:examschedulex/models/ui_config.dart';
+import 'package:examschedulex/utils/time_utils.dart';
+import 'package:fluid_background/fluid_background.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:path_provider/path_provider.dart';
+
 import '../models/exam.dart';
 import '../models/exam_config.dart';
-import '../widgets/exam_row.dart';
 
 class ExamScheduleHomePage extends StatefulWidget {
   const ExamScheduleHomePage({super.key});
@@ -18,53 +20,111 @@ class ExamScheduleHomePage extends StatefulWidget {
   State<ExamScheduleHomePage> createState() => _ExamScheduleHomePageState();
 }
 
-class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with TickerProviderStateMixin {
-  // 添加Timer用于更新时间
+class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
+    with TickerProviderStateMixin {
   Timer? _timer;
-  // 添加动画控制器
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-  // 添加提醒对话框相关的状态
-  // bool _showReminder = false;
-  // final String _reminderTitle = '';
-  // final String _reminderSubtitle = '';
-  // 添加全屏状态变量
-  // bool _isFullScreen = false;
-  // 添加考试配置数据
   ExamConfig? _examConfig;
-  // 添加加载状态
+  UiConfig _uiConfig = const UiConfig();
   bool _isLoading = true;
-  // 添加错误信息
   String _errorMessage = '';
-  
-  // 当前时间
-  String _getCurrentTime() {
-    // 返回当前时间的格式化字符串
-    return DateTime.now().toString().split(' ')[1].substring(0, 8);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfigs();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
-  // 获取当前或下一个考试
-  Exam? _getCurrentOrNextExam() {
-    if (_examConfig == null) return null;
-    
+  @override
+  void dispose() {
+    _timer?.cancel();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  Future<void> _loadConfigs() async {
+    final uiConfig = await UiConfig.load();
+    ExamConfig? examConfig;
+    String error = '';
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 100));
+      String path;
+      if (Platform.isWindows) {
+        path = 'C:\\esx\\exam_config.json';
+      } else if (Platform.isLinux) {
+        path = '/exam_config.json';
+      } else if (Platform.isMacOS) {
+        path = '/exam_config.json';
+      } else {
+        final directory = await getApplicationDocumentsDirectory();
+        path = '${directory.path}/exam_config.json';
+      }
+
+      File file = File(path);
+      if (await file.exists()) {
+        final jsonString = await file.readAsString();
+        final jsonData = json.decode(jsonString);
+        examConfig = ExamConfig.fromJson(jsonData);
+      } else {
+        final directory = await getApplicationDocumentsDirectory();
+        final fallbackPath = '${directory.path}\\exam_config.json';
+        file = File(fallbackPath);
+        if (await file.exists()) {
+          final jsonString = await file.readAsString();
+          final jsonData = json.decode(jsonString);
+          examConfig = ExamConfig.fromJson(jsonData);
+        } else {
+          error = '未找到考试配置文件';
+        }
+      }
+    } on MissingPluginException {
+      error = '插件初始化失败，请重启应用';
+    } catch (e) {
+      error = '加载考试配置失败: $e';
+    }
+
+    if (mounted) {
+      setState(() {
+        _uiConfig = uiConfig;
+        _examConfig = examConfig;
+        _errorMessage = error;
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<Exam> get _exams {
+    if (_examConfig == null) return [];
+    return _examConfig!.examInfos
+        .map((info) => Exam(
+              name: info.name,
+              start: DateTime.parse(info.start),
+              end: DateTime.parse(info.end),
+              alertTime: info.alertTime,
+            ))
+        .toList();
+  }
+
+  List<Exam> get _currentExams {
     final now = DateTime.now();
-    final exams = _examConfig!.examInfos.map((info) => Exam(
-      name: info.name,
-      start: DateTime.parse(info.start),
-      end: DateTime.parse(info.end),
-      alertTime: info.alertTime,
-    )).toList();
-    
-    // 查找正在进行的考试
-    for (final exam in exams) {
+    return _exams
+        .where((exam) => exam.start.isBefore(now) && exam.end.isAfter(now))
+        .toList();
+  }
+
+  Exam? _getCurrentOrNextExam() {
+    final now = DateTime.now();
+    for (final exam in _exams) {
       if (exam.start.isBefore(now) && exam.end.isAfter(now)) {
         return exam;
       }
     }
-    // 如果没有正在进行的考试，查找下一个即将开始的考试
     Exam? nextExam;
     Duration? minDiff;
-    for (final exam in exams) {
+    for (final exam in _exams) {
       if (exam.start.isAfter(now)) {
         final diff = exam.start.difference(now);
         if (minDiff == null || diff < minDiff) {
@@ -76,15 +136,24 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
     return nextExam;
   }
 
-  // 获取考试状态文本
+  String _getRemainingTime(Exam exam) {
+    final now = DateTime.now();
+    if (now.isBefore(exam.start)) {
+      final diff = exam.start.difference(now);
+      return '距开始: ${diff.inHours.toString().padLeft(2, '0')}:${(diff.inMinutes % 60).toString().padLeft(2, '0')}:${(diff.inSeconds % 60).toString().padLeft(2, '0')}';
+    } else if (now.isAfter(exam.end)) {
+      return '已结束';
+    } else {
+      final diff = exam.end.difference(now);
+      return '剩余: ${diff.inHours.toString().padLeft(2, '0')}:${(diff.inMinutes % 60).toString().padLeft(2, '0')}:${(diff.inSeconds % 60).toString().padLeft(2, '0')}';
+    }
+  }
+
   String _getExamStatus(Exam exam) {
     final now = DateTime.now();
     if (now.isBefore(exam.start)) {
       final diff = exam.start.difference(now);
-      if (diff.inMinutes <= 15) {
-        return '即将开始';
-      }
-      return '未开始';
+      return diff.inMinutes <= 15 ? '即将开始' : '未开始';
     } else if (now.isAfter(exam.end)) {
       return '已结束';
     } else {
@@ -92,492 +161,534 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage> with Ticker
     }
   }
 
-  // 获取剩余时间文本
-  String _getRemainingTime(Exam exam) {
+  LiquidGlassSettings _glassSettings() {
+    final config = _uiConfig.liquidGlass;
+    GlassSpecularSharpness sharpness;
+    switch (config.specularSharpness) {
+      case 'soft':
+        sharpness = GlassSpecularSharpness.soft;
+        break;
+      case 'sharp':
+        sharpness = GlassSpecularSharpness.sharp;
+        break;
+      default:
+        sharpness = GlassSpecularSharpness.medium;
+    }
+    return LiquidGlassSettings(
+      thickness: config.thickness,
+      blur: config.blur,
+      glassColor: config.glassColor,
+      specularSharpness: sharpness,
+      visibility: config.visibility,
+      chromaticAberration: config.chromaticAberration,
+      lightAngle: config.lightAngle,
+      lightIntensity: config.lightIntensity,
+      ambientStrength: config.ambientStrength,
+      refractiveIndex: config.refractiveIndex,
+      saturation: config.saturation,
+    );
+  }
+
+  String _fontFamily() => _uiConfig.fontFamily;
+
+  String _formatClockTime() {
     final now = DateTime.now();
-    if (now.isBefore(exam.start)) {
-      final diff = exam.start.difference(now);
-      final hours = diff.inHours;
-      final minutes = diff.inMinutes % 60;
-      final seconds = diff.inSeconds % 60;
-      return '距开始: ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    } else if (now.isAfter(exam.end)) {
-      return '已结束';
-    } else {
-      final diff = exam.end.difference(now);
-      final hours = diff.inHours;
-      final minutes = diff.inMinutes % 60;
-      final seconds = diff.inSeconds % 60;
-      return '剩余时间: ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-  }
-
-  // 检查是否需要显示提醒
-
-  // 从文件加载考试配置
-  Future<void> _loadExamConfig() async {
-    try {
-      // 添加延迟确保插件初始化完成
-      await Future.delayed(const Duration(milliseconds: 100));
-      
-      // 修改路径为系统根目录
-      String path;
-      if (Platform.isWindows) {
-        // Windows系统根目录
-        path = 'C:\\esx\\exam_config.json';
-      } else if (Platform.isLinux) {
-        // Linux系统根目录
-        path = '/exam_config.json';
-      } else if (Platform.isMacOS) {
-        // macOS系统根目录
-        path = '/exam_config.json';
-      } else {
-        // 其他平台回退到应用文档目录
-        final directory = await getApplicationDocumentsDirectory();
-        path = '${directory.path}/exam_config.json';
-      }
-      
-      File file = File(path);
-      
-      // 打印路径以便调试
-      print('尝试从以下路径加载考试配置文件: $path');
-      
-      // 检查文件是否存在
-      if (await file.exists()) {
-        // 从文件读取数据
-        final jsonString = await file.readAsString();
-        final jsonData = json.decode(jsonString);
-        setState(() {
-          _examConfig = ExamConfig.fromJson(jsonData);
-          _isLoading = false;
-        });
-        print('成功加载考试配置文件');
-      } else {
-        // 如果主路径文件不存在，尝试从应用程序文档目录加载
-        print('考试配置文件不存在: $path');
-        final directory = await getApplicationDocumentsDirectory();
-        final fallbackPath = '${directory.path}\\exam_config.json';
-        file = File(fallbackPath);
-        
-        print('尝试从备选路径加载考试配置文件: $fallbackPath');
-        if (await file.exists()) {
-          // 从备选路径读取数据
-          final jsonString = await file.readAsString();
-          final jsonData = json.decode(jsonString);
-          setState(() {
-            _examConfig = ExamConfig.fromJson(jsonData);
-            _isLoading = false;
-          });
-          print('成功从备选路径加载考试配置文件');
-        } else {
-          // 如果备选路径也不存在文件，使用默认数据
-          setState(() {
-            _errorMessage = '未找到考试配置文件: $path 和 $fallbackPath';
-            _isLoading = false;
-          });
-          print('备选考试配置文件也不存在: $fallbackPath');
-        }
-      }
-    } on MissingPluginException catch (e) {
-      // 处理插件未找到异常
-      print('插件异常: $e');
-      setState(() {
-        _errorMessage = '插件初始化失败，请重启应用';
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = '加载考试配置失败: $e';
-        _isLoading = false;
-      });
-      print('加载考试配置失败: $e');
-    }
-  }
-
-  // 考试数据列表
-  List<Exam> get _exams {
-    if (_examConfig == null) return [];
-    return _examConfig!.examInfos.map((info) => Exam(
-      name: info.name,
-      start: DateTime.parse(info.start),
-      end: DateTime.parse(info.end),
-      alertTime: info.alertTime,
-    )).toList();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // 初始化动画控制器
-    _animationController = AnimationController(
-      duration: const Duration(seconds: 1),
-      vsync: this,
-    );
-    
-    _scaleAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    );
-    
-    // 每隔一段时间播放一次跳动动画
-    Timer.periodic(const Duration(seconds: 10), (timer) {
-      _animationController.forward(from: 0.9);
-    });
-    
-    // 加载考试配置
-    _loadExamConfig();
-    // 启动定时器，每秒更新一次时间显示
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState((){});
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel(); // 取消定时器以避免内存泄漏
-    _animationController.dispose();
-    // 退出全屏模式
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.edgeToEdge,
-    );
-    super.dispose();
+    return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    // 获取媒体查询数据用于响应式设计
-    final mediaQuery = MediaQuery.of(context);
-    final textScaleFactor = mediaQuery.textScaleFactor;
-    // 基准字体大小，可以根据需要调整
-    const baseFontSize = 1.0;
-    
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final layout = _uiConfig.layout;
+    final typo = _uiConfig.typography;
+    final font = _fontFamily();
+
     return Scaffold(
-      resizeToAvoidBottomInset: false, // 防止键盘弹出时布局变化
-      appBar: null, // 移除AppBar
-      body: Stack(
+      resizeToAvoidBottomInset: false,
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            )
+          : _errorMessage.isNotEmpty
+              ? _buildErrorView(font)
+              : Stack(
+                  children: [
+                    _buildFluidBackground(),
+                    SafeArea(
+                      child: Padding(
+                        padding: EdgeInsets.all(layout.padding),
+                        child: AdaptiveLiquidGlassLayer(
+                          settings: _glassSettings(),
+                          child: Column(
+                            children: [
+                              _buildBanner(screenHeight, typo, font),
+                              SizedBox(height: layout.spacing),
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: layout.leftRightRatio[0],
+                                      child: _buildLeftPanel(screenHeight,
+                                          screenWidth, typo, layout, font),
+                                    ),
+                                    SizedBox(width: layout.spacing),
+                                    Expanded(
+                                      flex: layout.leftRightRatio[1],
+                                      child:
+                                          _buildRightPanel(typo, layout, font),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+    );
+  }
+
+  Widget _buildFluidBackground() {
+    final fbConfig = _uiConfig.fluidBackground;
+    return Positioned.fill(
+      child: FluidBackground(
+        initialColors: InitialColors.custom(
+          fbConfig.initialColors.map((c) => Color(c.value)).toList(),
+        ),
+        initialPositions: InitialOffsets.predefined(),
+        velocity: fbConfig.velocity,
+        bubblesSize: fbConfig.bubblesSize,
+        sizeChangingRange: fbConfig.sizeChangingRange,
+        allowColorChanging: fbConfig.allowColorChanging,
+        bubbleMutationDuration:
+            Duration(seconds: fbConfig.bubbleMutationDurationSeconds),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+
+  Widget _buildBanner(double screenHeight, TypographyConfig typo, String font) {
+    return SizedBox(
+      height: screenHeight * _uiConfig.layout.bannerHeightRatio,
+      child: GlassCard(
+        child: Center(
+          child: Text(
+            _examConfig?.examName ?? '考试安排',
+            style: TextStyle(
+              fontFamily: font,
+              fontSize: typo.bannerFontSize,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeftPanel(
+    double screenHeight,
+    double screenWidth,
+    TypographyConfig typo,
+    LayoutConfig layout,
+    String font,
+  ) {
+    final currentExam = _getCurrentOrNextExam();
+
+    return Column(
+      children: [
+        _buildMessageCard(screenHeight, typo, layout, font),
+        SizedBox(height: layout.spacing),
+        _buildClockCard(screenHeight, screenWidth, typo, layout, font),
+        SizedBox(height: layout.spacing),
+        if (currentExam != null)
+          _buildCurrentSubjectCard(currentExam, typo, layout, font),
+      ],
+    );
+  }
+
+  Widget _buildMessageCard(
+    double screenHeight,
+    TypographyConfig typo,
+    LayoutConfig layout,
+    String font,
+  ) {
+    final message = _examConfig?.message ?? '沉着应对，冷静答题。';
+    final maxHeight = screenHeight * layout.messageCardMaxHeightRatio;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: GlassCard(
+        child: Center(
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final availableWidth = constraints.maxWidth - 32;
+                final availableHeight = constraints.maxHeight - 24;
+
+                double fontSize = typo.messageFontSize;
+                final textPainter = TextPainter(
+                  text: TextSpan(
+                    text: message,
+                    style: TextStyle(
+                      fontFamily: font,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  textDirection: TextDirection.ltr,
+                  textAlign: TextAlign.center,
+                );
+
+                textPainter.layout(maxWidth: availableWidth.abs());
+
+                while (textPainter.height > availableHeight &&
+                    fontSize > typo.messageMinFontSize) {
+                  fontSize -= 1;
+                  textPainter.text = TextSpan(
+                    text: message,
+                    style: TextStyle(
+                      fontFamily: font,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                  textPainter.layout(maxWidth: availableWidth);
+                }
+
+                return Text(
+                  message,
+                  style: TextStyle(
+                    fontFamily: font,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  double _calculateClockFontSize(
+      double clockWidth, TypographyConfig typo, String font) {
+    double fontSize = typo.clockFontSize;
+    final timeStr = _formatClockTime();
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: timeStr,
+        style: TextStyle(
+          fontFamily: font,
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    while (textPainter.width > clockWidth && fontSize > 20) {
+      fontSize -= 1;
+      textPainter.text = TextSpan(
+        text: timeStr,
+        style: TextStyle(
+          fontFamily: font,
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      );
+      textPainter.layout();
+    }
+    return fontSize;
+  }
+
+  Widget _buildClockCard(
+    double screenHeight,
+    double screenWidth,
+    TypographyConfig typo,
+    LayoutConfig layout,
+    String font,
+  ) {
+    final verticalPadding = screenHeight * layout.clockPaddingVerticalRatio;
+    final clockWidth = screenWidth * layout.clockTextWidthRatio;
+    final clockFontSize = _calculateClockFontSize(clockWidth, typo, font);
+
+    return GlassCard(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: verticalPadding),
+        child: Center(
+          child: Text(
+            _formatClockTime(),
+            style: TextStyle(
+              fontFamily: font,
+              fontSize: clockFontSize,
+              fontWeight: FontWeight.bold,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentSubjectCard(
+    Exam exam,
+    TypographyConfig typo,
+    LayoutConfig layout,
+    String font,
+  ) {
+    final status = _getExamStatus(exam);
+    final isOngoing = status == '考试中';
+    final isUpcoming = status == '即将开始';
+
+    return GlassCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              exam.name,
+              style: TextStyle(
+                fontFamily: font,
+                fontSize: typo.subjectCardTitleFontSize,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: layout.spacing),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '开始: ${TimeUtils.formatTime(exam.start)}',
+                  style: TextStyle(
+                    fontFamily: font,
+                    fontSize: typo.subjectCardDetailFontSize,
+                  ),
+                ),
+                SizedBox(width: layout.spacing * 2),
+                Text(
+                  '结束: ${TimeUtils.formatTime(exam.end)}',
+                  style: TextStyle(
+                    fontFamily: font,
+                    fontSize: typo.subjectCardDetailFontSize,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: layout.spacing),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _getRemainingTime(exam),
+                  style: TextStyle(
+                    fontFamily: font,
+                    fontSize: typo.subjectCardDetailFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: isOngoing
+                        ? Colors.redAccent
+                        : isUpcoming
+                            ? Colors.orangeAccent
+                            : null,
+                  ),
+                ),
+                SizedBox(width: layout.spacing),
+                _buildStatusChip(status, font),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String status, String font) {
+    Color color;
+    switch (status) {
+      case '考试中':
+        color = Colors.redAccent;
+        break;
+      case '即将开始':
+        color = Colors.orangeAccent;
+        break;
+      case '未开始':
+        color = Colors.blue;
+        break;
+      default:
+        color = Colors.grey;
+    }
+    return GlassChip(
+      label: status,
+      labelStyle: TextStyle(
+        fontFamily: font,
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: color,
+      ),
+    );
+  }
+
+  Widget _buildRightPanel(
+      TypographyConfig typo, LayoutConfig layout, String font) {
+    final exams = _exams;
+
+    return GlassPanel(
+      child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage.isNotEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 60,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage, 
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // 重启程序
-                            setState(() {
-                              _isLoading = true;
-                              _errorMessage = '';
-                            });
-                            // 重新初始化应用状态
-                            _loadExamConfig();
-                          },
-                          icon: const Icon(Icons.refresh),
-                          label: Text(
-                            '重新加载',
-                            style: TextStyle(
-                              fontSize: baseFontSize * 1.2 * textScaleFactor,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // 将标题放在顶部中央位置
-                      Center(
-                        child: Text(
-                          _examConfig?.examName ?? '考试安排',
-                          style: const TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                
-                // 主要内容区域 - 分为左右两列
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
                 Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 左侧列 - 当前时间及考试信息
-                      Expanded(
-                        flex: 5,
-                        child: Column(
-                          children: [
-                            // 消息显示区域
-                            Container(  
-                              width: double.infinity, // 设置宽度占满
-                              padding: const EdgeInsets.all(8.0),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Theme.of(context).colorScheme.primary,
-                                    Theme.of(context).colorScheme.secondary,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(19.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.3),
-                                    spreadRadius: 2,
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                
-                                _examConfig?.message ?? '沉着应对，冷静答题。',
-                                style: const TextStyle(
-                                  fontSize: 28, 
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // 当前时间显示
-                            // 使用装饰性容器展示实时时间，具有渐变背景和阴影效果
-                            ScaleTransition(
-                              scale: _scaleAnimation,
-                              child: Container(
-                                width: double.infinity, // 设置宽度占满
-                                padding: const EdgeInsets.all(20.0),
-                                decoration: BoxDecoration(
-                                  // 渐变背景色，从左上到右下由浅蓝到深蓝
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Theme.of(context).colorScheme.primary.withOpacity(0.9),
-                                      Theme.of(context).colorScheme.primary,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(24.0),
-                                  // 添加阴影效果增强立体感
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.4),
-                                      spreadRadius: 3,
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      _getCurrentTime(),
-                                      style: TextStyle(
-                                        fontSize: MediaQuery.of(context).size.width * 0.125, // 根据屏幕宽度自适应字体大小
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        shadows: const [
-                                          Shadow(
-                                            offset: Offset(2, 2),
-                                            blurRadius: 3,
-                                            color: Colors.black26,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // Text(
-                                    //   '当前时间',
-                                    //   style: TextStyle(
-                                    //     fontSize: MediaQuery.of(context).size.width * 0.03, // 根据屏幕宽度自适应字体大小
-                                    //     color: Colors.white70,
-                                    //     fontWeight: FontWeight.w500,
-                                    //   ),
-                                    // ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            
-                            // 当前考试信息区域
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(19.0),
-                               
-                                child: Column(
-                                  // crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    
-                                    Container(
-                                      width: double.infinity, // 设置宽度占满
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: Theme.of(context).colorScheme.primary,
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _getCurrentOrNextExam() != null 
-                                              ? '科目: ${_getCurrentOrNextExam()?.name ?? ""}' 
-                                              : '科目: 暂无',
-                                            style: const TextStyle(
-                                              fontSize: 32,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            _getCurrentOrNextExam() != null 
-                                              ? '时间: ${TimeUtils.formatTime(_getCurrentOrNextExam()!.start)} - ${TimeUtils.formatTime(_getCurrentOrNextExam()!.end)}'
-                                              : '时间: --:-- - --:--',
-                                            style: const TextStyle(
-                                              fontSize: 26,
-                                              height: 1.5,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            _getCurrentOrNextExam() != null 
-                                              ? _getRemainingTime(_getCurrentOrNextExam()!)
-                                              : '剩余时间: --:--:--',
-                                            style: const TextStyle(
-                                              fontSize: 26,
-                                              height: 1.5,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            _getCurrentOrNextExam() != null 
-                                              ? '状态: ${_getExamStatus(_getCurrentOrNextExam()!)}'
-                                              : '状态: 无考试',
-                                            style: const TextStyle(
-                                              fontSize: 26,
-                                              height: 1.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                   
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(width: 16),
-                      
-                      // 右侧列 - 考试安排表格
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          children: [
-                            // 表头
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 24.0, vertical: 16.0),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Theme.of(context).colorScheme.primary,
-                                    Theme.of(context).colorScheme.secondary,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(16.0)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.3),
-                                    spreadRadius: 1,
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Row(
-                                children: [
-                                  
-                                ],
-                              ),
-                            ),
-                            // 表格内容
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).cardColor,
-                                  borderRadius: const BorderRadius.vertical(
-                                      bottom: Radius.circular(16.0)),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.3),
-                                      spreadRadius: 1,
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.all(0),
-                                  itemCount: _exams.length,
-                                  itemBuilder: (context, index) {
-                                    return ExamRow(exam: _exams[index]);
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '日期',
+                    style: TextStyle(
+                      fontFamily: font,
+                      fontSize: typo.scheduleHeaderFontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    '开始时间',
+                    style: TextStyle(
+                      fontFamily: font,
+                      fontSize: typo.scheduleHeaderFontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    '科目',
+                    style: TextStyle(
+                      fontFamily: font,
+                      fontSize: typo.scheduleHeaderFontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
             ),
           ),
-          
+          const GlassDivider(),
+          Expanded(
+            child: ListView.separated(
+              padding: EdgeInsets.zero,
+              itemCount: exams.length,
+              separatorBuilder: (_, __) => const GlassDivider(),
+              itemBuilder: (context, index) {
+                final exam = exams[index];
+                final status = _getExamStatus(exam);
+                final isActive = status == '考试中';
+                return Container(
+                  color: isActive
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                      : Colors.transparent,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 10.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${exam.start.month}/${exam.start.day}',
+                            style: TextStyle(
+                              fontFamily: font,
+                              fontSize: typo.scheduleRowFontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            TimeUtils.formatTime(exam.start),
+                            style: TextStyle(
+                              fontFamily: font,
+                              fontSize: typo.scheduleRowFontSize,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            exam.name,
+                            style: TextStyle(
+                              fontFamily: font,
+                              fontSize: typo.scheduleRowFontSize,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
-      
-      floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
-      
+    );
+  }
+
+  Widget _buildErrorView(String font) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 60,
+            color: Theme.of(context).colorScheme.error,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _errorMessage,
+            style: TextStyle(
+              fontFamily: font,
+              color: Theme.of(context).colorScheme.error,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          GlassButton.custom(
+            onTap: () {
+              setState(() {
+                _isLoading = true;
+                _errorMessage = '';
+              });
+              _loadConfigs();
+            },
+            width: 120,
+            height: 48,
+            child: Text(
+              '重新加载',
+              style: TextStyle(fontFamily: font),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -36,6 +36,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   path_provider: ^2.1.1
+  liquid_glass_widgets: ^0.11.0
+  fluid_background: ^1.0.5
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +60,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -82,6 +87,9 @@ flutter:
     - family: Harmony
       fonts:
         - asset: fonts/HarmonyOS_Sans_Medium.ttf
+    - family: MapleMono
+      fonts:
+        - asset: fonts/MapleMono-Medium.ttf
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
