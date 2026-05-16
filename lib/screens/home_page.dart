@@ -258,7 +258,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
     return Positioned.fill(
       child: FluidBackground(
         initialColors: InitialColors.custom(
-          fbConfig.initialColors.map((c) => Color(c.value)).toList(),
+          fbConfig.initialColors,
         ),
         initialPositions: InitialOffsets.predefined(),
         velocity: fbConfig.velocity,
@@ -600,7 +600,10 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
                 final isActive = status == '考试中';
                 return Container(
                   color: isActive
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                      ? Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.1)
                       : Colors.transparent,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
