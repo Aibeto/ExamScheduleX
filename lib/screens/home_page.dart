@@ -102,7 +102,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
     // 异步加载UI配置和考试配置
     _loadConfigs();
     // 启动每秒更新的定时器，用于刷新页面显示（如时钟、倒计时）
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       // 只有在组件仍然挂载时才调用 setState，避免内存泄漏
       if (mounted) setState(() {});
     });
@@ -474,7 +474,8 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
                           child: Column(
                             children: [
                               // 顶部横幅: 显示考试名称
-                              _buildBanner(screenHeight, typo, font),
+                              _buildBanner(
+                                  screenHeight, screenWidth, typo, font),
                               // 横幅与内容之间的间距
                               SizedBox(height: layout.spacing),
                               // 主内容区域: 左右两栏布局
@@ -563,19 +564,45 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
   ///   [screenHeight] - 屏幕高度，用于计算横幅高度
   ///   [typo] - 排版配置，包含横幅字体大小
   ///   [font] - 字体族名称
-  Widget _buildBanner(double screenHeight, TypographyConfig typo, String font) {
+  Widget _buildBanner(double screenHeight, double screenWidth,
+      TypographyConfig typo, String font) {
+    final bannerHeight = screenHeight * 0.15;
+    final bannerText = _examConfig?.examName ?? '考试安排';
+    final verticalPadding = screenHeight * 0.03;
     return SizedBox(
-      // 横幅高度 = 屏幕高度 × 横幅高度比例
-      height: screenHeight * _uiConfig.layout.bannerHeightRatio,
+      height: bannerHeight,
       child: GlassCard(
-        child: Center(
-          child: Text(
-            // 显示考试名称，如果未配置则显示默认文本
-            _examConfig?.examName ?? '考试安排',
-            style: TextStyle(
-              fontFamily: font,
-              fontSize: typo.bannerFontSize, // 横幅字体大小
-              fontWeight: FontWeight.bold, // 粗体
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: verticalPadding),
+          child: Center(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final availableHeight = constraints.maxHeight * 2;
+                final availableWidth = constraints.maxWidth;
+                final fontSize = _calculateAdaptiveFontSize(
+                  text: bannerText,
+                  availableWidth: availableWidth,
+                  initialFontSize: availableHeight,
+                  minFontSize: 12,
+                  font: font,
+                  availableHeight: availableHeight,
+                  fontWeight: FontWeight.bold,
+                );
+                return SizedBox(
+                  width: constraints.maxWidth,
+                  child: Text(
+                    bannerText,
+                    style: TextStyle(
+                      fontFamily: font,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -610,15 +637,12 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
 
     return Column(
       children: [
-        // 消息卡片: 显示鼓励语
         _buildMessageCard(screenHeight, typo, layout, font),
-        // 消息卡片与时钟卡片之间的间距
         SizedBox(height: layout.spacing),
-        // 时钟卡片: 显示当前时间
-        _buildClockCard(screenHeight, screenWidth, typo, layout, font),
-        // 时钟卡片与当前科目卡片之间的间距
+        Expanded(
+          child: _buildClockCard(screenHeight, screenWidth, typo, layout, font),
+        ),
         SizedBox(height: layout.spacing),
-        // 当前科目卡片: 仅在有考试时显示
         if (currentExam != null)
           _buildCurrentSubjectCard(currentExam, typo, layout, font),
       ],
@@ -702,7 +726,7 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
                     ),
                   );
                   // 重新布局测量
-                  textPainter.layout(maxWidth: availableWidth);
+                  textPainter.layout(maxWidth: availableWidth.abs());
                 }
 
                 // 使用计算后的字体大小显示文本
@@ -723,6 +747,51 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
     );
   }
 
+  double _calculateAdaptiveFontSize({
+    required String text,
+    required double availableWidth,
+    required double initialFontSize,
+    required double minFontSize,
+    required String font,
+    double? availableHeight,
+    FontWeight fontWeight = FontWeight.normal,
+    List<FontFeature>? fontFeatures,
+  }) {
+    double fontSize = initialFontSize;
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontFamily: font,
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          fontFeatures: fontFeatures,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: availableHeight != null ? 1 : null,
+    );
+    textPainter.layout(maxWidth: availableWidth.abs());
+
+    while ((textPainter.width > availableWidth ||
+            (availableHeight != null &&
+                textPainter.height > availableHeight)) &&
+        fontSize > minFontSize) {
+      fontSize -= 1;
+      textPainter.text = TextSpan(
+        text: text,
+        style: TextStyle(
+          fontFamily: font,
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          fontFeatures: fontFeatures,
+        ),
+      );
+      textPainter.layout(maxWidth: availableWidth.abs());
+    }
+    return fontSize;
+  }
+
   /// 计算时钟显示的最佳字体大小
   ///
   /// 使用 [TextPainter] 测量时钟文本的实际渲染宽度，
@@ -738,47 +807,44 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
   ///
   /// 返回:
   ///   适合可用宽度的字体大小
-  double _calculateClockFontSize(
-      double clockWidth, TypographyConfig typo, String font) {
-    // 从配置的时钟字体大小开始
+  double _calculateClockFontSize(double clockWidth, double? availableHeight,
+      TypographyConfig typo, String font) {
     double fontSize = typo.clockFontSize;
-    // 获取当前时间字符串用于测量
     final timeStr = _formatClockTime();
-    // 创建 TextPainter 用于测量文本宽度
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: timeStr,
-        style: TextStyle(
+
+    TextStyle makeStyle(double size) => TextStyle(
           fontFamily: font,
-          fontSize: fontSize,
+          fontSize: size,
           fontWeight: FontWeight.bold,
-          // 使用等宽数字特性，防止数字宽度不一致导致时钟抖动
           fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
+        );
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: timeStr, style: makeStyle(fontSize)),
       textDirection: TextDirection.ltr,
     );
-    // 首次布局测量
     textPainter.layout();
 
-    // 自适应字体大小循环:
-    // 如果文本宽度超出可用宽度且字体大小大于20，继续缩小
-    while (textPainter.width > clockWidth && fontSize > 20) {
-      fontSize -= 1; // 每次减小1号字体
-      // 更新 TextPainter 的文本样式
-      textPainter.text = TextSpan(
-        text: timeStr,
-        style: TextStyle(
-          fontFamily: font,
-          fontSize: fontSize,
-          fontWeight: FontWeight.bold,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      );
-      // 重新布局测量
-      textPainter.layout();
+    bool fits() =>
+        textPainter.width <= clockWidth &&
+        (availableHeight == null || textPainter.height <= availableHeight);
+
+    if (fits()) {
+      while (fits()) {
+        fontSize += 1;
+        textPainter.text = TextSpan(text: timeStr, style: makeStyle(fontSize));
+        textPainter.layout();
+      }
+      fontSize -= 1;
+    } else {
+      while (!fits() && fontSize > 20) {
+        fontSize -= 1;
+        textPainter.text = TextSpan(text: timeStr, style: makeStyle(fontSize));
+        textPainter.layout();
+      }
     }
-    return fontSize; // 返回计算后的字体大小
+
+    return fontSize;
   }
 
   /// 构建时钟卡片
@@ -800,28 +866,35 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
     LayoutConfig layout,
     String font,
   ) {
-    // 计算时钟卡片的垂直内边距
     final verticalPadding = screenHeight * layout.clockPaddingVerticalRatio;
-    // 计算时钟文本的可用宽度
-    final clockWidth = screenWidth * layout.clockTextWidthRatio;
-    // 计算适合可用宽度的字体大小
-    final clockFontSize = _calculateClockFontSize(clockWidth, typo, font);
 
     return GlassCard(
       child: Padding(
-        // 仅设置垂直内边距，水平由卡片自身处理
         padding: EdgeInsets.symmetric(vertical: verticalPadding),
-        child: Center(
-          child: Text(
-            _formatClockTime(), // 格式化的当前时间
-            style: TextStyle(
-              fontFamily: font,
-              fontSize: clockFontSize, // 自适应后的字体大小
-              fontWeight: FontWeight.bold,
-              // 使用等宽数字特性，防止时钟数字切换时宽度抖动
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final clockMaxWidth =
+                constraints.maxWidth - screenWidth * 0.03 * 1.6;
+            final clockMaxHeight = constraints.maxHeight;
+            final clockFontSize = _calculateClockFontSize(
+                clockMaxWidth, clockMaxHeight, typo, font);
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: clockMaxWidth.abs() + 2),
+                child: Text(
+                  _formatClockTime(),
+                  style: TextStyle(
+                    fontFamily: font,
+                    fontSize: clockFontSize,
+                    fontWeight: FontWeight.bold,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.visible,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -853,83 +926,112 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
     LayoutConfig layout,
     String font,
   ) {
-    // 获取考试状态
     final status = _getExamStatus(exam);
-    // 判断是否正在进行中
     final isOngoing = status == '考试中';
-    // 判断是否即将开始
     final isUpcoming = status == '即将开始';
 
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center, // 水平居中对齐
-          children: [
-            // 考试名称标题
-            Text(
-              exam.name,
-              style: TextStyle(
-                fontFamily: font,
-                fontSize: typo.subjectCardTitleFontSize, // 科目卡片标题字体大小
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            // 标题与详情之间的间距
-            SizedBox(height: layout.spacing),
-            // 开始/结束时间行
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center, // 水平居中
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final availableWidth = constraints.maxWidth - 32;
+            final titleFontSize = _calculateAdaptiveFontSize(
+              text: exam.name,
+              availableWidth: availableWidth,
+              initialFontSize: typo.subjectCardTitleFontSize,
+              minFontSize: 12,
+              font: font,
+              fontWeight: FontWeight.bold,
+            );
+            final startTimeText = '开始: ${TimeUtils.formatTime(exam.start)}';
+            final endTimeText = '结束: ${TimeUtils.formatTime(exam.end)}';
+            final detailFontSize = _calculateAdaptiveFontSize(
+              text: '$startTimeText  $endTimeText',
+              availableWidth: availableWidth,
+              initialFontSize: typo.subjectCardDetailFontSize,
+              minFontSize: 10,
+              font: font,
+            );
+            final remainingText = _getRemainingTime(exam);
+            final remainingFontSize = _calculateAdaptiveFontSize(
+              text: remainingText,
+              availableWidth: availableWidth * 0.6,
+              initialFontSize: typo.subjectCardDetailFontSize,
+              minFontSize: 10,
+              font: font,
+              fontWeight: FontWeight.bold,
+            );
+            final chipFontSize = _calculateAdaptiveFontSize(
+              text: status,
+              availableWidth: availableWidth * 0.3,
+              initialFontSize: 16,
+              minFontSize: 8,
+              font: font,
+              fontWeight: FontWeight.bold,
+            );
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 开始时间
                 Text(
-                  '开始: ${TimeUtils.formatTime(exam.start)}',
+                  exam.name,
                   style: TextStyle(
                     fontFamily: font,
-                    fontSize: typo.subjectCardDetailFontSize, // 详情字体大小
-                  ),
-                ),
-                // 开始与结束时间之间的间距
-                SizedBox(width: layout.spacing * 2),
-                // 结束时间
-                Text(
-                  '结束: ${TimeUtils.formatTime(exam.end)}',
-                  style: TextStyle(
-                    fontFamily: font,
-                    fontSize: typo.subjectCardDetailFontSize,
-                  ),
-                ),
-              ],
-            ),
-            // 时间行与状态行之间的间距
-            SizedBox(height: layout.spacing),
-            // 剩余时间与状态标签行
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center, // 水平居中
-              children: [
-                // 剩余时间/距开始时间
-                Text(
-                  _getRemainingTime(exam),
-                  style: TextStyle(
-                    fontFamily: font,
-                    fontSize: typo.subjectCardDetailFontSize,
+                    fontSize: titleFontSize,
                     fontWeight: FontWeight.bold,
-                    // 根据考试状态设置颜色
-                    color: isOngoing
-                        ? Colors.redAccent // 考试中: 红色，表示紧急
-                        : isUpcoming
-                            ? Colors.orangeAccent // 即将开始: 橙色，表示警告
-                            : null, // 其他: 使用默认颜色
                   ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                // 剩余时间与状态标签之间的间距
-                SizedBox(width: layout.spacing),
-                // 考试状态标签
-                _buildStatusChip(status, font),
+                SizedBox(height: layout.spacing),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      startTimeText,
+                      style: TextStyle(
+                        fontFamily: font,
+                        fontSize: detailFontSize,
+                      ),
+                      maxLines: 1,
+                    ),
+                    SizedBox(width: layout.spacing * 2),
+                    Text(
+                      endTimeText,
+                      style: TextStyle(
+                        fontFamily: font,
+                        fontSize: detailFontSize,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
+                SizedBox(height: layout.spacing),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      remainingText,
+                      style: TextStyle(
+                        fontFamily: font,
+                        fontSize: remainingFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: isOngoing
+                            ? Colors.redAccent
+                            : isUpcoming
+                                ? Colors.orangeAccent
+                                : null,
+                      ),
+                      maxLines: 1,
+                    ),
+                    SizedBox(width: layout.spacing),
+                    _buildStatusChip(status, font, chipFontSize),
+                  ],
+                ),
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -946,29 +1048,28 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
   /// 参数:
   ///   [status] - 考试状态字符串
   ///   [font] - 字体族名称
-  Widget _buildStatusChip(String status, String font) {
-    // 根据状态确定标签颜色
+  Widget _buildStatusChip(String status, String font, double fontSize) {
     Color color;
     switch (status) {
       case '考试中':
-        color = Colors.redAccent; // 红色: 正在考试
+        color = Colors.redAccent;
         break;
       case '即将开始':
-        color = Colors.orangeAccent; // 橙色: 即将开考
+        color = Colors.orangeAccent;
         break;
       case '未开始':
-        color = Colors.blue; // 蓝色: 尚未开始
+        color = Colors.blue;
         break;
       default:
-        color = Colors.grey; // 灰色: 已结束或其他状态
+        color = Colors.grey;
     }
     return GlassChip(
-      label: status, // 状态文本
+      label: status,
       labelStyle: TextStyle(
         fontFamily: font,
-        fontSize: 16, // 标签字体大小
+        fontSize: fontSize,
         fontWeight: FontWeight.bold,
-        color: color, // 状态对应的颜色
+        color: color,
       ),
     );
   }
@@ -988,133 +1089,223 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
   ///   [font] - 字体族名称
   Widget _buildRightPanel(
       TypographyConfig typo, LayoutConfig layout, String font) {
-    // 获取所有考试列表
     final exams = _exams;
 
     return GlassPanel(
-      child: Column(
-        children: [
-          // 表头行: 日期、开始时间、科目
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              children: [
-                // 日期列
-                Expanded(
-                  child: Text(
-                    '日期',
-                    style: TextStyle(
-                      fontFamily: font,
-                      fontSize: typo.scheduleHeaderFontSize, // 表头字体大小
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                // 开始时间列
-                Expanded(
-                  child: Text(
-                    '开始时间',
-                    style: TextStyle(
-                      fontFamily: font,
-                      fontSize: typo.scheduleHeaderFontSize,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                // 科目列
-                Expanded(
-                  child: Text(
-                    '科目',
-                    style: TextStyle(
-                      fontFamily: font,
-                      fontSize: typo.scheduleHeaderFontSize,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final panelWidth = constraints.maxWidth;
+          final colWidth = (panelWidth - 24) / 4;
+
+          final headerFontSizes = [
+            _calculateAdaptiveFontSize(
+              text: '日期',
+              availableWidth: colWidth,
+              initialFontSize: typo.scheduleHeaderFontSize,
+              minFontSize: 10,
+              font: font,
+              fontWeight: FontWeight.bold,
             ),
-          ),
-          // 表头与列表之间的分隔线
-          const GlassDivider(),
-          // 考试列表（可滚动）
-          Expanded(
-            child: ListView.separated(
-              // 无额外内边距
-              padding: EdgeInsets.zero,
-              // 列表项数量 = 考试总数
-              itemCount: exams.length,
-              // 列表项之间的分隔线
-              separatorBuilder: (context, index) => const GlassDivider(),
-              // 构建每个考试列表项
-              itemBuilder: (context, index) {
-                // 获取当前索引的考试对象
-                final exam = exams[index];
-                // 获取考试状态
-                final status = _getExamStatus(exam);
-                // 判断是否为正在进行的考试（用于高亮显示）
-                final isActive = status == '考试中';
-                return Container(
-                  // 正在进行的考试使用主题色半透明背景高亮，其他考试透明
-                  color: isActive
-                      ? Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.1) // 10%透明度的主题色
-                      : Colors.transparent, // 透明背景
-                  child: Padding(
-                    // 水平和垂直内边距
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12.0, vertical: 10.0),
-                    child: Row(
-                      children: [
-                        // 日期列: 显示 "月/日" 格式
-                        Expanded(
-                          child: Text(
-                            // 格式: 月/日，如 "6/15"、"12/3"
-                            '${exam.start.month}/${exam.start.day}',
-                            style: TextStyle(
-                              fontFamily: font,
-                              fontSize: typo.scheduleRowFontSize, // 列表行字体大小
-                              fontWeight: FontWeight.bold, // 日期加粗显示
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        // 开始时间列
-                        Expanded(
-                          child: Text(
-                            // 使用 TimeUtils 格式化开始时间
-                            TimeUtils.formatTime(exam.start),
-                            style: TextStyle(
-                              fontFamily: font,
-                              fontSize: typo.scheduleRowFontSize,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        // 科目名称列
-                        Expanded(
-                          child: Text(
-                            exam.name, // 考试科目名称
-                            style: TextStyle(
-                              fontFamily: font,
-                              fontSize: typo.scheduleRowFontSize,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+            _calculateAdaptiveFontSize(
+              text: '开始时间',
+              availableWidth: colWidth,
+              initialFontSize: typo.scheduleHeaderFontSize,
+              minFontSize: 10,
+              font: font,
+              fontWeight: FontWeight.bold,
             ),
-          ),
-        ],
+            _calculateAdaptiveFontSize(
+              text: '结束时间',
+              availableWidth: colWidth,
+              initialFontSize: typo.scheduleHeaderFontSize,
+              minFontSize: 10,
+              font: font,
+              fontWeight: FontWeight.bold,
+            ),
+            _calculateAdaptiveFontSize(
+              text: '科目',
+              availableWidth: colWidth,
+              initialFontSize: typo.scheduleHeaderFontSize,
+              minFontSize: 10,
+              font: font,
+              fontWeight: FontWeight.bold,
+            ),
+          ];
+
+          final rowFontSizes = [
+            _calculateAdaptiveFontSize(
+              text: '00/00',
+              availableWidth: colWidth,
+              initialFontSize: typo.scheduleRowFontSize,
+              minFontSize: 8,
+              font: font,
+            ),
+            _calculateAdaptiveFontSize(
+              text: '00:00',
+              availableWidth: colWidth,
+              initialFontSize: typo.scheduleRowFontSize,
+              minFontSize: 8,
+              font: font,
+            ),
+            _calculateAdaptiveFontSize(
+              text: '00:00',
+              availableWidth: colWidth,
+              initialFontSize: typo.scheduleRowFontSize,
+              minFontSize: 8,
+              font: font,
+            ),
+            _calculateAdaptiveFontSize(
+              text: _exams.isNotEmpty
+                  ? _exams
+                      .map((e) => e.name)
+                      .reduce((a, b) => a.length > b.length ? a : b)
+                  : '科目',
+              availableWidth: colWidth,
+              initialFontSize: typo.scheduleRowFontSize,
+              minFontSize: 8,
+              font: font,
+            ),
+          ];
+
+          final headerFontSize =
+              headerFontSizes.reduce((a, b) => a < b ? a : b);
+          final rowFontSize = rowFontSizes.reduce((a, b) => a < b ? a : b);
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '日期',
+                        style: TextStyle(
+                          fontFamily: font,
+                          fontSize: headerFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '开始时间',
+                        style: TextStyle(
+                          fontFamily: font,
+                          fontSize: headerFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '结束时间',
+                        style: TextStyle(
+                          fontFamily: font,
+                          fontSize: headerFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '科目',
+                        style: TextStyle(
+                          fontFamily: font,
+                          fontSize: headerFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const GlassDivider(),
+              Expanded(
+                child: ListView.separated(
+                  padding: EdgeInsets.zero,
+                  itemCount: exams.length,
+                  separatorBuilder: (context, index) => const GlassDivider(),
+                  itemBuilder: (context, index) {
+                    final exam = exams[index];
+                    final status = _getExamStatus(exam);
+                    final isActive = status == '考试中';
+                    return Container(
+                      color: isActive
+                          ? Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12.0, vertical: 10.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${exam.start.month}/${exam.start.day}',
+                                style: TextStyle(
+                                  fontFamily: font,
+                                  fontSize: rowFontSize,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                TimeUtils.formatTime(exam.start),
+                                style: TextStyle(
+                                  fontFamily: font,
+                                  fontSize: rowFontSize,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                TimeUtils.formatTime(exam.end),
+                                style: TextStyle(
+                                  fontFamily: font,
+                                  fontSize: rowFontSize,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                exam.name,
+                                style: TextStyle(
+                                  fontFamily: font,
+                                  fontSize: rowFontSize,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1137,48 +1328,54 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
   ///   [font] - 字体族名称
   Widget _buildErrorView(String font) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center, // 垂直居中
-        children: [
-          // 错误图标: 红色感叹号
-          Icon(
-            Icons.error_outline, // 错误轮廓图标
-            size: 60, // 图标大小
-            color: Theme.of(context).colorScheme.error, // 使用主题错误色
-          ),
-          // 图标与文本之间的间距
-          const SizedBox(height: 16),
-          // 错误信息文本
-          Text(
-            _errorMessage, // 具体的错误描述
-            style: TextStyle(
-              fontFamily: font,
-              color: Theme.of(context).colorScheme.error, // 使用主题错误色
-              fontSize: 18, // 错误信息字体大小
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          // 文本与按钮之间的间距
-          const SizedBox(height: 16),
-          // 重新加载按钮
-          GlassButton.custom(
-            // 点击事件: 重新加载配置
-            onTap: () {
-              setState(() {
-                _isLoading = true; // 重新显示加载状态
-                _errorMessage = ''; // 清空错误信息
-              });
-              _loadConfigs(); // 重新加载配置文件
-            },
-            width: 120, // 按钮宽度
-            height: 48, // 按钮高度
-            child: Text(
-              '重新加载', // 按钮文本
-              style: TextStyle(fontFamily: font),
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final errorFontSize = _calculateAdaptiveFontSize(
+            text: _errorMessage,
+            availableWidth: constraints.maxWidth - 48,
+            initialFontSize: 18,
+            minFontSize: 10,
+            font: font,
+            fontWeight: FontWeight.bold,
+          );
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 60,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage,
+                style: TextStyle(
+                  fontFamily: font,
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: errorFontSize,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              GlassButton.custom(
+                onTap: () {
+                  setState(() {
+                    _isLoading = true;
+                    _errorMessage = '';
+                  });
+                  _loadConfigs();
+                },
+                width: 120,
+                height: 48,
+                child: Text(
+                  '重新加载',
+                  style: TextStyle(fontFamily: font),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

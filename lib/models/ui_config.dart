@@ -80,6 +80,19 @@ class LiquidGlassConfig {
   ///
   /// 默认值经过精心调整，产生中等强度的玻璃效果，
   /// 适合大多数场景使用。修改默认值即可调整全局配置。
+  ///
+  /// 参数说明:
+  /// - [thickness]: 玻璃厚度，值越大折射和反射效果越明显，默认值20
+  /// - [blur]: 背景模糊程度，值越大背景越模糊，默认值5
+  /// - [glassColor]: 玻璃叠加颜色，会与背景混合产生色调效果，默认透明白色 (0x00FFFFFF)
+  /// - [specularSharpness]: 高光锐度，控制高光的柔和/锐利程度（'soft'/'medium'/'sharp'），默认值'medium'
+  /// - [visibility]: 玻璃可见度，1.0为完全可见，0.0为完全透明，默认值1.0
+  /// - [chromaticAberration]: 色差，模拟光线折射产生的色彩偏移，默认值0.01
+  /// - [lightAngle]: 光照角度（弧度），影响高光位置，默认值0.785（约45度）
+  /// - [lightIntensity]: 光照强度，影响高光亮度，默认值0.5
+  /// - [ambientStrength]: 环境光强度，影响整体亮度，默认值0
+  /// - [refractiveIndex]: 折射率，影响背景扭曲程度（真实玻璃约1.5），默认值1.2
+  /// - [saturation]: 饱和度，影响背景色彩的鲜艳程度，默认值1.5
   const LiquidGlassConfig({
     this.thickness = 20,
     this.blur = 5,
@@ -158,12 +171,12 @@ class FluidBackgroundConfig {
       Color(0xFFA06CD5), // 紫色
       Color(0xFFF06292), // 粉红色
       Color(0xFF4DB6AC), // 青绿色
-      Color(0xFFFFD54F), // 金黄色
-      Color(0xFF81C784), // 浅绿色
-      Color(0xFF4FC3F7), // 浅蓝色
-      Color(0xFFFF8A65), // 橙色
-      Color(0xFF9575CD), // 淡紫色
-      Color(0xFF4DD0E1), // 青色
+      // Color(0xFFFFD54F), // 金黄色
+      // Color(0xFF81C784), // 浅绿色
+      // Color(0xFF4FC3F7), // 浅蓝色
+      // Color(0xFFFF8A65), // 橙色
+      // Color(0xFF9575CD), // 淡紫色
+      // Color(0xFF4DD0E1), // 青色
     ],
   });
 }
@@ -273,10 +286,10 @@ class TypographyConfig {
 
   /// 构造函数，所有参数均有默认值
   const TypographyConfig({
-    this.bannerFontSize = 30,
+    this.bannerFontSize = 48,
     this.messageFontSize = 28,
     this.messageMinFontSize = 14,
-    this.clockFontSize = 64,
+    this.clockFontSize = 128,
     this.subjectCardTitleFontSize = 32,
     this.subjectCardDetailFontSize = 26,
     this.scheduleHeaderFontSize = 24,
@@ -332,7 +345,7 @@ class UiConfig {
   /// 子配置对象使用 const 构造，确保默认值不可变。
   /// 修改此处的默认值即可全局调整UI配置。
   const UiConfig({
-    this.fontFamily = 'Harmony',
+    this.fontFamily = 'MapleMono NF CN',
     this.liquidGlass = const LiquidGlassConfig(),
     this.fluidBackground = const FluidBackgroundConfig(),
     this.layout = const LayoutConfig(),
