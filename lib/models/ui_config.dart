@@ -288,12 +288,12 @@ class TypographyConfig {
   const TypographyConfig({
     this.bannerFontSize = 48,
     this.messageFontSize = 28,
-    this.messageMinFontSize = 14,
+    this.messageMinFontSize = 18,
     this.clockFontSize = 128,
     this.subjectCardTitleFontSize = 32,
     this.subjectCardDetailFontSize = 26,
-    this.scheduleHeaderFontSize = 24,
-    this.scheduleRowFontSize = 22,
+    this.scheduleHeaderFontSize = 42,
+    this.scheduleRowFontSize = 38,
   });
 }
 

@@ -1095,136 +1095,166 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
       child: LayoutBuilder(
         builder: (context, constraints) {
           final panelWidth = constraints.maxWidth;
-          final colWidth = (panelWidth - 24) / 4;
+          final rawRatio = panelWidth / 500;
+          final scaleFactor = (rawRatio * rawRatio).clamp(0.2, 1.0);
+          final colWidth = panelWidth * 0.25;
+          final cellPadding = (2 * scaleFactor).clamp(0.0, 2.0);
+          final textAvailableWidth = colWidth - cellPadding * 2;
+          final hPadding = (12 * scaleFactor).clamp(2.0, 12.0);
+          final vPadding = (10 * scaleFactor).clamp(2.0, 10.0);
+
+          final adaptiveHeaderMin = (10 * scaleFactor).clamp(4.0, 10.0);
+          final adaptiveRowMin = (8 * scaleFactor).clamp(3.0, 8.0);
+          final adaptiveHeaderInitial =
+              typo.scheduleHeaderFontSize * scaleFactor.clamp(0.5, 1.0);
+          final adaptiveRowInitial =
+              typo.scheduleRowFontSize * scaleFactor.clamp(0.5, 1.0);
 
           final headerFontSizes = [
             _calculateAdaptiveFontSize(
               text: '日期',
-              availableWidth: colWidth,
-              initialFontSize: typo.scheduleHeaderFontSize,
-              minFontSize: 10,
+              availableWidth: textAvailableWidth,
+              initialFontSize: adaptiveHeaderInitial,
+              minFontSize: adaptiveHeaderMin,
               font: font,
               fontWeight: FontWeight.bold,
             ),
             _calculateAdaptiveFontSize(
-              text: '开始时间',
-              availableWidth: colWidth,
-              initialFontSize: typo.scheduleHeaderFontSize,
-              minFontSize: 10,
+              text: '开始',
+              availableWidth: textAvailableWidth,
+              initialFontSize: adaptiveHeaderInitial,
+              minFontSize: adaptiveHeaderMin,
               font: font,
               fontWeight: FontWeight.bold,
             ),
             _calculateAdaptiveFontSize(
-              text: '结束时间',
-              availableWidth: colWidth,
-              initialFontSize: typo.scheduleHeaderFontSize,
-              minFontSize: 10,
+              text: '结束',
+              availableWidth: textAvailableWidth,
+              initialFontSize: adaptiveHeaderInitial,
+              minFontSize: adaptiveHeaderMin,
               font: font,
               fontWeight: FontWeight.bold,
             ),
             _calculateAdaptiveFontSize(
               text: '科目',
-              availableWidth: colWidth,
-              initialFontSize: typo.scheduleHeaderFontSize,
-              minFontSize: 10,
+              availableWidth: textAvailableWidth,
+              initialFontSize: adaptiveHeaderInitial,
+              minFontSize: adaptiveHeaderMin,
               font: font,
               fontWeight: FontWeight.bold,
             ),
           ];
 
-          final rowFontSizes = [
-            _calculateAdaptiveFontSize(
-              text: '00/00',
-              availableWidth: colWidth,
-              initialFontSize: typo.scheduleRowFontSize,
-              minFontSize: 8,
+          final rowFontSizes = <double>[];
+          for (final exam in _exams) {
+            rowFontSizes.add(_calculateAdaptiveFontSize(
+              text: '${exam.start.month}/${exam.start.day}',
+              availableWidth: textAvailableWidth,
+              initialFontSize: adaptiveRowInitial,
+              minFontSize: adaptiveRowMin,
               font: font,
-            ),
-            _calculateAdaptiveFontSize(
-              text: '00:00',
-              availableWidth: colWidth,
-              initialFontSize: typo.scheduleRowFontSize,
-              minFontSize: 8,
+              fontWeight: FontWeight.bold,
+            ));
+            rowFontSizes.add(_calculateAdaptiveFontSize(
+              text: TimeUtils.formatTime(exam.start),
+              availableWidth: textAvailableWidth,
+              initialFontSize: adaptiveRowInitial,
+              minFontSize: adaptiveRowMin,
               font: font,
-            ),
-            _calculateAdaptiveFontSize(
-              text: '00:00',
-              availableWidth: colWidth,
-              initialFontSize: typo.scheduleRowFontSize,
-              minFontSize: 8,
+            ));
+            rowFontSizes.add(_calculateAdaptiveFontSize(
+              text: TimeUtils.formatTime(exam.end),
+              availableWidth: textAvailableWidth,
+              initialFontSize: adaptiveRowInitial,
+              minFontSize: adaptiveRowMin,
               font: font,
-            ),
-            _calculateAdaptiveFontSize(
-              text: _exams.isNotEmpty
-                  ? _exams
-                      .map((e) => e.name)
-                      .reduce((a, b) => a.length > b.length ? a : b)
-                  : '科目',
-              availableWidth: colWidth,
-              initialFontSize: typo.scheduleRowFontSize,
-              minFontSize: 8,
+            ));
+            rowFontSizes.add(_calculateAdaptiveFontSize(
+              text: exam.name,
+              availableWidth: textAvailableWidth,
+              initialFontSize: adaptiveRowInitial,
+              minFontSize: adaptiveRowMin,
               font: font,
-            ),
-          ];
+            ));
+          }
 
           final headerFontSize =
               headerFontSizes.reduce((a, b) => a < b ? a : b);
-          final rowFontSize = rowFontSizes.reduce((a, b) => a < b ? a : b);
+          final rowFontSize = rowFontSizes.isNotEmpty
+              ? rowFontSizes.reduce((a, b) => a < b ? a : b)
+              : typo.scheduleRowFontSize;
 
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: EdgeInsets.all(hPadding),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        '日期',
-                        style: TextStyle(
-                          fontFamily: font,
-                          fontSize: headerFontSize,
-                          fontWeight: FontWeight.bold,
+                    SizedBox(
+                      width: colWidth,
+                      child: Padding(
+                        padding: EdgeInsets.all(cellPadding),
+                        child: Text(
+                          '日期',
+                          style: TextStyle(
+                            fontFamily: font,
+                            fontSize: headerFontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
                       ),
                     ),
-                    Expanded(
-                      child: Text(
-                        '开始时间',
-                        style: TextStyle(
-                          fontFamily: font,
-                          fontSize: headerFontSize,
-                          fontWeight: FontWeight.bold,
+                    SizedBox(
+                      width: colWidth,
+                      child: Padding(
+                        padding: EdgeInsets.all(cellPadding),
+                        child: Text(
+                          '开始',
+                          style: TextStyle(
+                            fontFamily: font,
+                            fontSize: headerFontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
                       ),
                     ),
-                    Expanded(
-                      child: Text(
-                        '结束时间',
-                        style: TextStyle(
-                          fontFamily: font,
-                          fontSize: headerFontSize,
-                          fontWeight: FontWeight.bold,
+                    SizedBox(
+                      width: colWidth,
+                      child: Padding(
+                        padding: EdgeInsets.all(cellPadding),
+                        child: Text(
+                          '结束',
+                          style: TextStyle(
+                            fontFamily: font,
+                            fontSize: headerFontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
                       ),
                     ),
-                    Expanded(
-                      child: Text(
-                        '科目',
-                        style: TextStyle(
-                          fontFamily: font,
-                          fontSize: headerFontSize,
-                          fontWeight: FontWeight.bold,
+                    SizedBox(
+                      width: colWidth,
+                      child: Padding(
+                        padding: EdgeInsets.all(cellPadding),
+                        child: Text(
+                          '科目',
+                          style: TextStyle(
+                            fontFamily: font,
+                            fontSize: headerFontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
                       ),
                     ),
+                    const Expanded(child: SizedBox.shrink()),
                   ],
                 ),
               ),
@@ -1246,56 +1276,73 @@ class _ExamScheduleHomePageState extends State<ExamScheduleHomePage>
                               .withValues(alpha: 0.1)
                           : Colors.transparent,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12.0, vertical: 10.0),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: hPadding, vertical: vPadding),
                         child: Row(
                           children: [
-                            Expanded(
-                              child: Text(
-                                '${exam.start.month}/${exam.start.day}',
-                                style: TextStyle(
-                                  fontFamily: font,
-                                  fontSize: rowFontSize,
-                                  fontWeight: FontWeight.bold,
+                            SizedBox(
+                              width: colWidth,
+                              child: Padding(
+                                padding: EdgeInsets.all(cellPadding),
+                                child: Text(
+                                  '${exam.start.month}/${exam.start.day}',
+                                  style: TextStyle(
+                                    fontFamily: font,
+                                    fontSize: rowFontSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
                               ),
                             ),
-                            Expanded(
-                              child: Text(
-                                TimeUtils.formatTime(exam.start),
-                                style: TextStyle(
-                                  fontFamily: font,
-                                  fontSize: rowFontSize,
+                            SizedBox(
+                              width: colWidth,
+                              child: Padding(
+                                padding: EdgeInsets.all(cellPadding),
+                                child: Text(
+                                  TimeUtils.formatTime(exam.start),
+                                  style: TextStyle(
+                                    fontFamily: font,
+                                    fontSize: rowFontSize,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
                               ),
                             ),
-                            Expanded(
-                              child: Text(
-                                TimeUtils.formatTime(exam.end),
-                                style: TextStyle(
-                                  fontFamily: font,
-                                  fontSize: rowFontSize,
+                            SizedBox(
+                              width: colWidth,
+                              child: Padding(
+                                padding: EdgeInsets.all(cellPadding),
+                                child: Text(
+                                  TimeUtils.formatTime(exam.end),
+                                  style: TextStyle(
+                                    fontFamily: font,
+                                    fontSize: rowFontSize,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
                               ),
                             ),
-                            Expanded(
-                              child: Text(
-                                exam.name,
-                                style: TextStyle(
-                                  fontFamily: font,
-                                  fontSize: rowFontSize,
+                            SizedBox(
+                              width: colWidth,
+                              child: Padding(
+                                padding: EdgeInsets.all(cellPadding),
+                                child: Text(
+                                  exam.name,
+                                  style: TextStyle(
+                                    fontFamily: font,
+                                    fontSize: rowFontSize,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            const Expanded(child: SizedBox.shrink()),
                           ],
                         ),
                       ),
