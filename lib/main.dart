@@ -10,7 +10,7 @@ void main() async {
 
   await LiquidGlassWidgets.initialize();
 
-  final uiConfig = await UiConfig.load();
+  const uiConfig = UiConfig();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
