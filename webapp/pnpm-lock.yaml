@@ -8,6 +8,9 @@ dependencies:
   '@fontsource/fira-sans':
     specifier: ^5.2.5
     version: 5.3.0
+  '@fontsource/inter':
+    specifier: ^5.3.0
+    version: 5.3.0
   '@fontsource/noto-sans-sc':
     specifier: ^5.3.0
     version: 5.3.0
@@ -234,6 +237,10 @@ packages:
 
   /@fontsource/fira-sans@5.3.0:
     resolution: {integrity: sha512-z1SKSG7eRhm3srlb7rQ3j77QP4TP7OFxCZ4wUWhCdt+3hOF9K0AyvybpAsz6+JWNcCVV7AqC7dbOT3e67P2r5A==}
+    dev: false
+
+  /@fontsource/inter@5.3.0:
+    resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
     dev: false
 
   /@fontsource/noto-sans-sc@5.3.0:

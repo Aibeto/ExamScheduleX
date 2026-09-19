@@ -138,6 +138,10 @@ class _AssetServer {
         _routes[key.substring(_kAssetPrefix.length)] = key;
       }
     }
+    // assets/web/ 不入库，需先执行 pnpm build；缺失时明确报错而不是渲染裸页面
+    if (!_routes.containsKey('index.html')) {
+      throw StateError('缺少前端产物 assets/web/，请先在 webapp/ 下执行 pnpm install && pnpm build');
+    }
     _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     _server!.listen(_handle, onError: (Object _) {});
     return 'http://127.0.0.1:${_server!.port}/';

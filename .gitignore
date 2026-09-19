@@ -37,8 +37,14 @@ migrate_working_dir/
 # Windows build intermediates
 /windows/flutter/ephemeral/
 
-# webapp dependencies (构建产物 assets/web/ 需随仓库提交，供 Flutter 构建免 Node 使用，勿加入忽略)
+# webapp
 webapp/node_modules/
+
+# 前端构建产物：webapp 构建输出，不入库（构建步骤见 README）
+assets/web/
+
+# Inno Setup 安装包输出
+/dist/
 
 # Symbolication related
 app.*.symbols

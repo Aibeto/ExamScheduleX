@@ -5,31 +5,42 @@
 @import '@fontsource/poppins/700.css';
 @import '@fontsource/fira-sans/400.css';
 @import '@fontsource/fira-sans/600.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
 @import '@fontsource/noto-sans-sc/400.css';
 @import '@fontsource/noto-sans-sc/500.css';
 @import '@fontsource/noto-sans-sc/700.css';
 
-/* [tokens] 字体与主题映射：正文几何无衬线，时钟人文无衬线 */
+/* [tokens] 字体角色：几何(Poppins)=仅拉丁展示标题；人文(Fira Sans)=仅时钟/倒计时读数；Helvetica 类过渡体(Inter)=其余全部界面与数据；CJK 回退 Noto Sans SC */
 :root {
   --app-font-geo: 'Poppins', 'Noto Sans SC', sans-serif;
   --app-font-human: 'Fira Sans', 'Noto Sans SC', sans-serif;
-  --ak-font-sans: var(--app-font-geo);
+  --app-font-ui: 'Inter', 'Noto Sans SC', sans-serif;
+  --ak-font-sans: var(--app-font-ui);
   --ak-font-command: var(--app-font-geo);
-  --ak-font-mono: var(--app-font-geo);
+  --ak-font-mono: var(--app-font-ui);
 }
 
-/* ak-ui 内部硬编码的衬线/等宽/系统字体统一映射到开源无衬线 */
-.ak-command .ak-command__label,
-.ak-label, .ak-field__hint, .ak-notice__code, .ak-tag,
+/* ak-ui 内部硬编码的衬线/等宽/系统字体统一映射到 Inter；
+   ak-command 自身把字体设为 Noto 优先，直接覆盖它对整块生效 */
+.ak-command,
 .ak-dialog, .ak-dialog .ak-dialog__eyebrow,
 .ak-input, .ak-textarea, .ak-select, .ak-button,
 .ak-choice, .ak-progress, .ak-progress__header,
-.ak-status, .ak-notice {
+.ak-status, .ak-notice, .ak-notice__code,
+.ak-label, .ak-field__hint, .ak-tag {
+  font-family: var(--app-font-ui);
+}
+
+/* 几何体只用于拉丁展示标题，给版面一点性格 */
+.brand__code, .toolbar__title {
   font-family: var(--app-font-geo);
 }
 
-/* 状态标签跟随全局字号（ak-tag 默认 0.6875rem 过小） */
-.ak-tag { font-size: 0.95rem; }
+/* 状态标签跟随全局字号并降权，避免抢过科目名（ak-tag 默认 0.6875rem/800） */
+.ak-tag { font-size: 0.9rem; font-weight: 600; }
 
 html[data-theme='light'] {
   --ak-surface-canvas: #f3f2ee;
@@ -56,7 +67,7 @@ html, body {
 }
 
 body {
-  font-family: var(--app-font-geo);
+  font-family: var(--app-font-ui);
   background: var(--ak-surface-canvas);
   color: var(--ak-text-primary);
 }
@@ -90,6 +101,7 @@ body {
   gap: var(--ak-space-4);
   width: 100%;
   min-height: 0;
+  flex: 1;
 }
 
 .brand {
@@ -101,6 +113,7 @@ body {
 
 .brand__code {
   font-size: 0.9rem;
+  font-weight: 500;
   letter-spacing: var(--ak-type-wide);
   color: var(--ak-text-secondary);
   white-space: nowrap;
@@ -113,10 +126,12 @@ body {
 }
 
 .clock-block {
-  flex: 1;
+  /* 高度交给时钟自身的宽度自适应决定，不参与拉伸 */
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  min-height: 0;
+  /* 读数区与下方科目信息之间用一条细线分区 */
+  border-bottom: var(--ak-line-hairline) solid color-mix(in srgb, var(--ak-text-secondary) 45%, transparent);
 }
 
 .clock {
@@ -127,8 +142,30 @@ body {
   line-height: 1;
 }
 
-/* 人文无衬线（时钟/倒计时） */
+/* [fonts] 人文体只承担时钟与倒计时两块仪表读数，其余数字沿用 Inter，避免同行混排 */
 .clock-font { font-family: var(--app-font-human); }
+
+/* ak-button 基础样式固定 150px 宽，长标签（如「使用 schedule.json」）会溢出；
+   改为内容自适应 + 最小宽度，短标签仍保持原尺寸 */
+.ak-button {
+  width: auto;
+  min-width: 150px;
+  padding-inline: var(--ak-space-4);
+}
+
+.ak-button--block { width: 100%; }
+
+/* 该按钮位于纵向 flex 容器中，避免被 align-items:stretch 拉成通栏 */
+#btn-add-row { align-self: flex-start; }
+
+/* 含数字的块统一等宽数字，避免逐秒刷新时宽度抖动 */
+.brand__date,
+.current-card__range,
+.subject-row__duration,
+.editor-row input[type='date'],
+.editor-row input[type='time'] {
+  font-variant-numeric: tabular-nums;
+}
 
 /* [current] 当前科目卡片 */
 .current-card {
@@ -136,6 +173,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--ak-space-3);
+  /* 与列表行共用同一条信号轨，颜色随剩余时间变化；去掉 ak-ui 的柔和大阴影与装饰渐变 */
+  border-left: var(--ak-line-strong) solid var(--app-tone, var(--ak-signal-info));
+  box-shadow: none;
+  background-image: none;
 }
 
 .current-card__name {
@@ -166,6 +207,8 @@ body {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  /* 倒计时颜色即剩余时间信号 */
+  color: var(--app-tone, var(--ak-text-primary));
 }
 
 .current-card__progress { margin-top: var(--ak-space-1); }
@@ -216,13 +259,22 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: var(--ak-space-3);
+  /* 窄窗口下放不下时让右侧控件整组换行，避免撑出横向溢出；
+     标题本身保持单行不压缩 */
+  flex-wrap: wrap;
+  row-gap: var(--ak-space-2);
+  padding-bottom: var(--ak-space-3);
+  /* 工具栏与列表之间用细线分区，避免工具栏漂浮 */
+  border-bottom: var(--ak-line-hairline) solid color-mix(in srgb, var(--ak-text-secondary) 45%, transparent);
 }
 
 .toolbar__controls {
   display: flex;
   align-items: center;
   gap: var(--ak-space-4);
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  row-gap: var(--ak-space-2);
+  margin-left: auto;
 }
 
 .lang-opts {
@@ -239,9 +291,11 @@ body {
 
 .toolbar__title {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.7rem;
+  font-weight: 600;
   letter-spacing: var(--ak-type-wide);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .toolbar__sub {
@@ -262,15 +316,28 @@ body {
 
 .subject-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--ak-space-2) var(--ak-space-4);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: var(--ak-space-4);
   align-items: center;
-  padding: var(--ak-space-2) var(--ak-space-3);
+  padding: var(--ak-space-3) var(--ak-space-4);
   background: var(--ak-surface-panel);
   border-left: var(--ak-line-strong) solid var(--ak-signal-disabled);
 }
 
-.subject-row--active { border-left-color: var(--ak-signal-info); }
+/* 时长与状态各自定宽右对齐，多行之间形成两条对齐的数据栏 */
+.subject-row > .subject-row__duration {
+  min-width: 6.5em;
+  text-align: right;
+}
+
+.subject-row > .subject-row__tag {
+  min-width: 6.5em;
+  justify-content: flex-end;
+}
+
+.subject-row__info { min-width: 0; }
+
+.subject-row--active { border-left-color: var(--app-tone, var(--ak-signal-info)); }
 .subject-row--next { border-left-color: var(--ak-signal-action); }
 .subject-row--past { opacity: 0.55; }
 
@@ -288,19 +355,8 @@ body {
   white-space: nowrap;
 }
 
-.subject-row__side {
-  display: flex;
-  align-items: center;
-  gap: var(--ak-space-3);
-  white-space: nowrap;
-}
-
-.subject-row__duration {
-  font-size: 1.25rem;
-  color: var(--ak-text-secondary);
-}
-
 .list-empty {
+  font-size: 1.25rem;
   color: var(--ak-text-secondary);
   padding: var(--ak-space-5);
   text-align: center;
@@ -323,7 +379,7 @@ body {
 
 /* ak-dialog__body 硬编码灰字、ak-button 硬编码白字，纸面底上不可读 */
 .ak-dialog .ak-dialog__body { color: #111315; }
-.ak-dialog .ak-button { color: #111315; }
+.ak-dialog .ak-button { color: #111315; box-shadow: none; }
 .ak-dialog .ak-button--action { color: #fff; background-color: #0075a8; }
 
 /* 暗色主题下复选框标签是硬编码深色，随主题取前景色 */
@@ -342,7 +398,7 @@ body {
 }
 
 .editor-dialog .ak-dialog__body {
-  overflow-y: auto;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: var(--ak-space-3);
@@ -371,9 +427,17 @@ body {
 /* 列头对齐列内容并加大字号 */
 .editor-head .ak-label { font-size: 0.95rem; }
 
-.editor-row .ak-input {
-  width: auto; /* ak-input 基础样式是 width:100%，会撑满列导致错位 */
+/* 输入控件随内容自适应宽度（ak-input 基础样式是 width:100%，会撑满容器）；
+   date/time 要容纳原生选择器图标，给字符宽度下限兜底 */
+.ak-input {
+  width: auto;
   field-sizing: content;
+}
+
+.ak-input[type='date'] { min-width: 11ch; }
+.ak-input[type='time'] { min-width: 9ch; }
+
+.editor-row .ak-input {
   min-height: 2.2rem;
   padding: 0.3rem 0.5rem;
 }
@@ -419,6 +483,7 @@ body {
   border: none;
   border-radius: var(--ak-radius-subtle);
   color: var(--ak-text-primary);
+  font-family: inherit;
   cursor: pointer;
   transition: color var(--ak-motion-fast) var(--ak-ease-standard);
 }
@@ -490,4 +555,167 @@ body {
 .fit {
   white-space: nowrap;
   overflow: hidden;
+}
+
+/* [tone] 进度填充跟随剩余时间信号色（--app-tone 由 main.js 写入） */
+.current-card .ak-progress__fill { background-color: var(--app-tone, var(--ak-signal-info)); }
+
+/* [announce] 左栏公告区：允许主动换行，占据卡片下方剩余空间 */
+.announce {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ak-space-2);
+  padding-top: var(--ak-space-3);
+  border-top: var(--ak-line-hairline) solid color-mix(in srgb, var(--ak-text-secondary) 45%, transparent);
+}
+
+.announce[hidden] { display: none; }
+
+.announce__label { color: var(--ak-text-secondary); }
+
+.announce__text {
+  margin: 0;
+  color: var(--ak-text-primary);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* [sync] 编辑窗内的时间校准 */
+.sync-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(27, 29, 31, 0.64);
+}
+
+.sync-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ak-space-2);
+  flex-wrap: wrap;
+}
+
+.sync-row .ak-button { width: auto; min-width: 0; padding: 0 var(--ak-space-4); }
+
+.sync-readout {
+  font-variant-numeric: tabular-nums;
+  color: rgba(27, 29, 31, 0.64);
+}
+
+/* [banner] 全部结束横幅：原创几何构图与展开动画 */
+.banner {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: var(--ak-space-5);
+}
+
+.banner[hidden] { display: none; }
+
+.banner__scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ak-surface-canvas) 84%, transparent);
+  animation: banner-fade var(--ak-motion-slow) var(--ak-ease-standard) both;
+}
+
+.banner__body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ak-space-4);
+  text-align: center;
+}
+
+.banner__rule {
+  width: min(44rem, 76vw);
+  height: 2px;
+  background: var(--app-tone, var(--ak-signal-info));
+  transform-origin: center;
+  animation: banner-rule var(--ak-motion-slow) var(--ak-ease-emphasized) both;
+}
+
+.banner__rule--bottom {
+  height: 1px;
+  opacity: 0.5;
+  animation-delay: 300ms;
+}
+
+.banner__eyebrow {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: var(--ak-type-wide);
+  color: var(--ak-text-secondary);
+  animation: banner-rise var(--ak-motion-base) var(--ak-ease-standard) 140ms both;
+}
+
+.banner__title {
+  margin: 0;
+  font-family: var(--app-font-geo);
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--ak-text-primary);
+  animation: banner-rise var(--ak-motion-base) var(--ak-ease-standard) 240ms both;
+}
+
+.banner__note {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--ak-text-secondary);
+  animation: banner-rise var(--ak-motion-base) var(--ak-ease-standard) 400ms both;
+}
+
+.banner__body .ak-button {
+  animation: banner-rise var(--ak-motion-base) var(--ak-ease-standard) 520ms both;
+}
+
+@keyframes banner-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes banner-rule {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes banner-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner__scrim,
+  .banner__rule,
+  .banner__eyebrow,
+  .banner__title,
+  .banner__note,
+  .banner__body .ak-button {
+    animation: none;
+  }
+}
+
+/* [a11y] 键盘焦点可见（此前完全缺失），使用 ak-ui 焦点令牌 */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--ak-focus-width) solid var(--ak-focus-color);
+  outline-offset: var(--ak-focus-offset);
+}
+
+/* 图标按钮需压过 ak-ui 组件的 outline 规则 */
+.tool-btn:focus-visible,
+.icon-btn:focus-visible {
+  outline: var(--ak-focus-width) solid var(--ak-focus-color);
+  outline-offset: var(--ak-focus-offset);
 }

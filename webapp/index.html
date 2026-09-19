@@ -23,7 +23,7 @@
         <div class="current-card ak-command" id="current-card">
           <span class="ak-command__label"><span data-lang="en">CURRENT</span><span class="lbl-sep"> / </span><span
               data-lang="zh">当前科目</span></span>
-          <div class="current-card__name fit" id="current-name" data-fs="current-name">等待课表数据</div>
+          <div class="current-card__name fit" id="current-name" data-fs="current-name">等待数据</div>
           <div class="current-card__meta">
             <span class="ak-tag" id="current-tag">STANDBY</span>
             <span class="current-card__range" id="current-range">--</span>
@@ -35,6 +35,11 @@
             </div>
           </div>
         </div>
+        <section class="announce" id="announce" hidden>
+          <span class="ak-label announce__label"><span data-lang="en">NOTICE</span><span class="lbl-sep"> / </span><span
+              data-lang="zh">公告</span></span>
+          <p class="announce__text" id="announce-text" data-fs="announce"></p>
+        </section>
       </div>
     </section>
 
@@ -46,8 +51,8 @@
     <!-- 右栏：科目列表 -->
     <section class="pane pane-right">
       <header class="toolbar">
-        <h1 class="toolbar__title"><span data-lang="zh">科目列表</span> <span class="toolbar__sub"
-            data-lang="en">SUBJECTS</span></h1>
+        <h1 class="toolbar__title"><span data-lang="zh">列表</span> <span class="toolbar__sub"
+            data-lang="en">LIST</span></h1>
         <div class="toolbar__controls">
           <div class="lang-opts" id="lang-opts">
             <label class="ak-choice ak-choice--checkbox">
@@ -111,6 +116,23 @@
         <span class="ak-label">字号调节 / TYPE SCALE</span>
         <div class="scale-rows" id="scale-rows"></div>
       </div>
+      <div class="scale-section">
+        <span class="ak-label">公告 / NOTICE</span>
+        <textarea class="ak-textarea" id="announce-input" rows="3" placeholder="公告内容，可换行（留空则不显示公告区）"></textarea>
+        <div class="scale-rows" id="announce-scale"></div>
+      </div>
+      <div class="scale-section">
+        <span class="ak-label">时间校准 / TIME SYNC</span>
+        <p class="sync-hint">系统时间不准时，在此设置当前正确时间，页面内部按此校准（仅影响本机显示与判定）。</p>
+        <div class="sync-row">
+          <input class="ak-input" type="date" id="sync-date">
+          <input class="ak-input" type="time" step="1" id="sync-time">
+          <button class="ak-button" type="button" id="btn-sync-apply"><span
+              class="ak-button__label">按此校准</span></button>
+          <button class="ak-button" type="button" id="btn-sync-reset"><span class="ak-button__label">重置</span></button>
+        </div>
+        <span class="sync-readout" id="sync-readout"></span>
+      </div>
     </div>
     <form class="ak-dialog__footer" method="dialog" id="editor-footer">
       <button class="ak-button" value="cancel">
@@ -143,6 +165,22 @@
 
   <!-- 通知 -->
   <div class="ak-notice-stack notice-stack" id="notice-stack"></div>
+
+  <!-- 全部结束横幅（原创几何构图，非游戏素材） -->
+  <div class="banner" id="banner" role="status" aria-live="polite" hidden>
+    <div class="banner__scrim"></div>
+    <div class="banner__body">
+      <span class="banner__rule banner__rule--top"></span>
+      <span class="banner__eyebrow"><span data-lang="en">MISSION ACCOMPLISHED</span><span class="lbl-sep"> / </span><span
+          data-lang="zh">任务完成</span></span>
+      <h2 class="banner__title">已结束</h2>
+      <span class="banner__rule banner__rule--bottom"></span>
+      <p class="banner__note">已全部完成</p>
+      <button class="ak-button" type="button" id="btn-banner-close">
+        <span class="ak-button__label">关闭</span>
+      </button>
+    </div>
+  </div>
 
   <script type="module" src="/src/main.js"></script>
 </body>

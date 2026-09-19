@@ -1,15 +1,21 @@
-//! main.js - 区块索引: [state] [clock] [render] [fit] [splitter] [editor] [bridge] [notice] [boot]
+//! main.js - 区块索引: [state] [clock] [tone] [render] [banner] [fit] [splitter] [editor] [announce] [sync] [bridge] [notice] [boot]
 import './style.css'
 
 const FILE_NAME = 'schedule.json'
-const K = { schedule: 'exsx.schedule', split: 'exsx.split', theme: 'exsx.theme', lock: 'exsx.lock', scale: 'exsx.scale', hideEn: 'exsx.hideEn', hideZh: 'exsx.hideZh' }
+const K = {
+  schedule: 'exsx.schedule', split: 'exsx.split', theme: 'exsx.theme', lock: 'exsx.lock',
+  scale: 'exsx.scale', hideEn: 'exsx.hideEn', hideZh: 'exsx.hideZh', offset: 'exsx.offset',
+}
 
 // [state]
 const state = {
   subjects: [], // {name, start:'YYYY-MM-DD HH:mm', end:...}
+  announcement: { text: '', size: 100 }, // 左栏公告，随课表一起写入 json
   locked: false,
   theme: 'dark',
   hasActive: false,
+  offsetMs: 0, // 时间校准偏移（本机设置）
+  bannerShown: false,
 }
 
 // 状态标签的双语文案：勾选「隐藏中文」且科目进行中时用英文
@@ -32,7 +38,11 @@ const SCALE_GROUPS = [
 const sizes = (() => {
   try { return JSON.parse(localStorage.getItem(K.scale)) || {} } catch { return {} }
 })()
-const scaleOf = (group) => (sizes[group] == null ? 100 : sizes[group])
+// 公告字号存在 json 配置里，其余分组存在本机
+const scaleOf = (group) => {
+  if (group === 'announce') return state.announcement.size
+  return sizes[group] == null ? 100 : sizes[group]
+}
 
 const $ = (id) => document.getElementById(id)
 const el = {
@@ -45,6 +55,11 @@ const el = {
   sourceDialog: $('source-dialog'),
   notices: $('notice-stack'),
   optHideEn: $('opt-hide-en'), optHideZh: $('opt-hide-zh'),
+  announce: $('announce'), announceText: $('announce-text'),
+  announceInput: $('announce-input'), announceScale: $('announce-scale'),
+  banner: $('banner'), bannerClose: $('btn-banner-close'),
+  syncDate: $('sync-date'), syncTime: $('sync-time'), syncReadout: $('sync-readout'),
+  btnSyncApply: $('btn-sync-apply'), btnSyncReset: $('btn-sync-reset'),
   btn: { theme: $('btn-theme'), edit: $('btn-edit'), lock: $('btn-lock'), lockIcon: $('btn-lock-icon') },
 }
 
@@ -75,18 +90,42 @@ const fmtCountdown = (ms) => {
 }
 const WEEK = ['日', '一', '二', '三', '四', '五', '六']
 
+// [clock] 页面内部时间 = 系统时间 + 校准偏移
+const nowMs = () => Date.now() + state.offsetMs
+const nowDate = () => new Date(nowMs())
+
+// [tone] 剩余时间百分比 → 页面信号色：充足(蓝) → 过半(琥珀) → 将尽(红)
+const TONE_STOPS = [
+  { at: 100, rgb: [74, 171, 234] },
+  { at: 50, rgb: [241, 198, 68] },
+  { at: 0, rgb: [227, 59, 59] },
+]
+function toneFor(remainPct) {
+  const p = Math.min(100, Math.max(0, remainPct))
+  const [a, b] = p >= 50 ? [TONE_STOPS[0], TONE_STOPS[1]] : [TONE_STOPS[1], TONE_STOPS[2]]
+  const t = (p - a.at) / (b.at - a.at)
+  const c = a.rgb.map((v, i) => Math.round(v + (b.rgb[i] - v) * t))
+  return `rgb(${c.join(', ')})`
+}
+
+function applyTone(remainPct) {
+  if (remainPct == null) document.documentElement.style.removeProperty('--app-tone')
+  else document.documentElement.style.setProperty('--app-tone', toneFor(remainPct))
+}
+
 // [clock] 秒级刷新，无动画
 function startClock() {
   const tick = () => {
-    const now = new Date()
+    const now = nowDate()
     el.clock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
     el.dateNum.textContent = fmtDate(now)
     el.dateWeek.textContent = `星期${WEEK[now.getDay()]}`
     renderCurrent(now)
     markRows(now)
+    if (el.editor.dialog.open) updateSyncReadout()
   }
   tick()
-  const delay = 1000 - (Date.now() % 1000) + 20
+  const delay = 1000 - (nowMs() % 1000) + 20
   setTimeout(() => { tick(); setInterval(tick, 1000) }, delay)
 }
 
@@ -110,18 +149,24 @@ function renderList() {
     timeNode.className = 'subject-row__time'
     timeNode.dataset.fs = 'subject-time'
     timeNode.textContent = fmtRange(s.start, s.end)
-    const side = document.createElement('div')
-    side.className = 'subject-row__side'
-    side.innerHTML = `
-      <span class="subject-row__duration" data-fs="subject-duration">${durationText(parseTime(s.start), parseTime(s.end))}</span>
-      <span class="ak-tag subject-row__tag">—</span>`
-    row.append(nameNode, timeNode, side)
+    // 左列合并为信息块，时长与状态各自成列，形成纵向对齐的数据栏
+    const info = document.createElement('div')
+    info.className = 'subject-row__info'
+    info.append(nameNode, timeNode)
+    const durationNode = document.createElement('span')
+    durationNode.className = 'subject-row__duration'
+    durationNode.dataset.fs = 'subject-duration'
+    durationNode.textContent = durationText(parseTime(s.start), parseTime(s.end))
+    const tagNode = document.createElement('span')
+    tagNode.className = 'ak-tag subject-row__tag'
+    tagNode.textContent = '—'
+    row.append(info, durationNode, tagNode)
     el.list.appendChild(row)
-    rowRefs.push({ row, s, name: nameNode, tag: side.querySelector('.subject-row__tag') })
+    rowRefs.push({ row, s, name: nameNode, tag: tagNode })
   }
   el.empty.hidden = sorted.length > 0
   fitAll()
-  markRows(new Date())
+  markRows(nowDate())
 }
 
 // 语言遮罩：勾选且当前有进行中的科目时生效
@@ -157,22 +202,46 @@ function renderCurrent(now) {
       el.card.progressWrap.hidden = pct == null
       fitAll()
     }
-    if (pct != null) el.card.progress.style.width = `${Math.min(100, Math.max(0, pct))}%`
+    // 结束时剩余不足 1 秒算出的百分位停留在 99.x%，四舍五入让进度条拉到 100%
+    if (pct != null) el.card.progress.style.width = `${Math.min(100, Math.round(Math.max(0, pct)))}%`
     el.card.count.textContent = count
   }
   if (active) {
     const a = parseTime(active.start), b = parseTime(active.end)
-    set(active.name, tagText('active'), 'ak-tag--advanced', fmtRange(active.start, active.end), fmtCountdown(b - now), ((now - a) / (b - a)) * 100)
+    const remainPct = ((b - now) / (b - a)) * 100
+    applyTone(remainPct)
+    set(active.name, tagText('active'), 'ak-tag--advanced', fmtRange(active.start, active.end), fmtCountdown(b - now), 100 - remainPct)
   } else if (next) {
+    applyTone(null)
     set(next.name, tagText('next'), '', fmtRange(next.start, next.end), fmtCountdown(parseTime(next.start) - now), null)
   } else if (sorted.length) {
-    set('全部科目已结束', tagText('past'), 'ak-tag--neutral', '--', '--:--:--', null)
+    applyTone(null)
+    set('已结束', tagText('past'), 'ak-tag--neutral', '--', '--:--:--', null)
+    showBanner()
   } else {
+    applyTone(null)
     set('等待数据', tagText('idle'), 'ak-tag--neutral', '--', '--:--:--', null)
   }
   state.hasActive = !!active
   applyMask(!!active)
 }
+
+// [banner] 全部结束后弹出一次完成横幅
+function showBanner() {
+  if (state.bannerShown) return
+  state.bannerShown = true
+  el.banner.hidden = false
+}
+
+function hideBanner() {
+  el.banner.hidden = true
+}
+
+el.bannerClose.addEventListener('click', hideBanner)
+el.banner.addEventListener('click', (e) => { if (e.target === el.banner) hideBanner() })
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !el.banner.hidden) hideBanner()
+})
 
 // [fit] 单行文本按容器宽度自适应字号（计算后 -1 防御）；受字号调节比例控制
 function fitAll() {
@@ -265,32 +334,51 @@ async function persist(json) {
 window.__hostProvideFileConfig = (json) => {
   const cached = localStorage.getItem(K.schedule)
   if (!json) return
-  if (!cached) { state.subjects = normalize(json); renderList(); return }
+  if (!cached) { applyConfig(json); return }
   if (json === cached) return
   el.sourceDialog.showModal()
   el.sourceDialog.addEventListener('close', () => {
     if (el.sourceDialog.returnValue === 'file') {
-      state.subjects = normalize(json)
+      applyConfig(json)
       localStorage.setItem(K.schedule, json)
-      renderList()
       notice('DATA / SYNC', '已载入 schedule.json')
     }
   }, { once: true })
 }
 
+// 解析配置：兼容纯数组（旧格式）与 {subjects, announcement}
 function normalize(json) {
   try {
     const data = JSON.parse(json)
     const list = Array.isArray(data) ? data : data.subjects
     if (!Array.isArray(list)) throw new Error('bad shape')
-    return list
-      .filter((s) => s && s.name && isValidDate(parseTime(s.start)) && isValidDate(parseTime(s.end)))
-      .map((s) => ({ name: String(s.name), start: s.start, end: s.end }))
-      .sort((a, b) => a.start.localeCompare(b.start))
+    const ann = (Array.isArray(data) ? null : data.announcement) || {}
+    const size = Number(ann.size)
+    return {
+      subjects: list
+        .filter((s) => s && s.name && isValidDate(parseTime(s.start)) && isValidDate(parseTime(s.end)))
+        .map((s) => ({ name: String(s.name), start: s.start, end: s.end }))
+        .sort((a, b) => a.start.localeCompare(b.start)),
+      announcement: {
+        text: typeof ann.text === 'string' ? ann.text : '',
+        size: Number.isFinite(size) && size >= 50 && size <= 200 ? size : 100,
+      },
+    }
   } catch {
     notice('PRTS / ERR', '课表数据格式无效', 'ak-notice--danger')
-    return []
+    return null
   }
+}
+
+// 应用配置并重绘
+function applyConfig(json) {
+  const cfg = normalize(json)
+  if (!cfg) return
+  state.subjects = cfg.subjects
+  state.announcement = cfg.announcement
+  state.bannerShown = false
+  applyAnnouncement()
+  renderList()
 }
 
 // [editor] 图形化编辑科目列表
@@ -299,6 +387,8 @@ function openEditor() {
   const sorted = [...state.subjects].sort((a, b) => a.start.localeCompare(b.start))
   for (const s of sorted) addEditorRow(s)
   if (!sorted.length) addEditorRow(null)
+  el.announceInput.value = state.announcement.text
+  buildTimeSync()
   el.editor.dialog.showModal()
 }
 
@@ -368,10 +458,74 @@ el.editor.footer.addEventListener('submit', (e) => {
   }
   subjects.sort((a, b) => a.start.localeCompare(b.start))
   state.subjects = subjects
+  state.announcement = { text: el.announceInput.value.replace(/\s+$/, ''), size: state.announcement.size }
+  state.bannerShown = false
+  applyAnnouncement()
   renderList()
-  persist(JSON.stringify({ subjects }, null, 2)).then((ok) =>
+  persist(JSON.stringify({ subjects, announcement: state.announcement }, null, 2)).then((ok) =>
     notice('RI / INFO', ok ? `已保存并写入 ${FILE_NAME}` : '保存失败', ok ? 'ak-notice--success' : 'ak-notice--danger'),
   )
+})
+
+// [announce] 左栏公告：内容与字号来自配置，允许主动换行
+function applyAnnouncement() {
+  const { text } = state.announcement
+  el.announceText.textContent = text
+  el.announce.hidden = !text.trim()
+  fitAll()
+}
+
+function buildAnnounceScale() {
+  const row = document.createElement('div')
+  row.className = 'scale-row'
+  row.innerHTML = `<span>公告字号</span>
+    <input type="range" min="50" max="200" step="5">
+    <span class="scale-value"></span>`
+  const input = row.querySelector('input')
+  const valueEl = row.querySelector('.scale-value')
+  input.value = state.announcement.size
+  valueEl.textContent = `${state.announcement.size}%`
+  input.addEventListener('input', () => {
+    state.announcement.size = Number(input.value)
+    valueEl.textContent = `${input.value}%`
+    fitAll()
+  })
+  el.announceScale.appendChild(row)
+}
+
+// [sync] 时间校准：偏移存本机，立即生效
+function buildTimeSync() {
+  const now = nowDate()
+  el.syncDate.value = fmtDate(now)
+  el.syncTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+  updateSyncReadout()
+}
+
+function updateSyncReadout() {
+  const s = Math.round(state.offsetMs / 1000)
+  const now = nowDate()
+  el.syncReadout.textContent =
+    `当前内部时间 ${fmtDate(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} · 偏移 ${s > 0 ? '+' : ''}${s}s`
+}
+
+el.btnSyncApply.addEventListener('click', () => {
+  const target = new Date(`${el.syncDate.value}T${el.syncTime.value}`)
+  if (!el.syncDate.value || !el.syncTime.value || !isValidDate(target)) {
+    notice('PRTS / ERR', '校准时间无效', 'ak-notice--danger')
+    return
+  }
+  state.offsetMs = target.getTime() - Date.now()
+  localStorage.setItem(K.offset, String(state.offsetMs))
+  updateSyncReadout()
+  const s = Math.round(state.offsetMs / 1000)
+  notice('RI / INFO', `已校准 ${s > 0 ? '+' : ''}${s}s`, 'ak-notice--success')
+})
+
+el.btnSyncReset.addEventListener('click', () => {
+  state.offsetMs = 0
+  localStorage.setItem(K.offset, '0')
+  buildTimeSync()
+  notice('RI / INFO', '已重置为系统时间')
 })
 
 // [boot]
@@ -401,13 +555,16 @@ el.splitter.addEventListener('dblclick', () => {
 })
 
 function boot() {
+  state.offsetMs = Number(localStorage.getItem(K.offset)) || 0
   const saved = localStorage.getItem(K.schedule)
-  if (saved) state.subjects = normalize(saved)
+  if (saved) applyConfig(saved)
   applyTheme(localStorage.getItem(K.theme) === 'light' ? 'light' : 'dark')
   applyLock(localStorage.getItem(K.lock) === '1')
   initSplitter()
   initLangOpts()
   buildScaleRows()
+  buildAnnounceScale()
+  applyAnnouncement()
   renderList()
   startClock()
 }

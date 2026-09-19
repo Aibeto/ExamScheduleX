@@ -2,7 +2,7 @@ name: examschedulex
 description: "A Exam Schedule Flutter application."
 publish_to: "none"
 
-version: 0.5.0+11
+version: 0.5.1+12
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
