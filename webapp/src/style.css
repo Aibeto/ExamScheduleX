@@ -1,0 +1,493 @@
+/* [import] ak-ui core + fonts */
+@import '@yunyoujun/ak-ui/style.css';
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
+@import '@fontsource/fira-sans/400.css';
+@import '@fontsource/fira-sans/600.css';
+@import '@fontsource/noto-sans-sc/400.css';
+@import '@fontsource/noto-sans-sc/500.css';
+@import '@fontsource/noto-sans-sc/700.css';
+
+/* [tokens] 字体与主题映射：正文几何无衬线，时钟人文无衬线 */
+:root {
+  --app-font-geo: 'Poppins', 'Noto Sans SC', sans-serif;
+  --app-font-human: 'Fira Sans', 'Noto Sans SC', sans-serif;
+  --ak-font-sans: var(--app-font-geo);
+  --ak-font-command: var(--app-font-geo);
+  --ak-font-mono: var(--app-font-geo);
+}
+
+/* ak-ui 内部硬编码的衬线/等宽/系统字体统一映射到开源无衬线 */
+.ak-command .ak-command__label,
+.ak-label, .ak-field__hint, .ak-notice__code, .ak-tag,
+.ak-dialog, .ak-dialog .ak-dialog__eyebrow,
+.ak-input, .ak-textarea, .ak-select, .ak-button,
+.ak-choice, .ak-progress, .ak-progress__header,
+.ak-status, .ak-notice {
+  font-family: var(--app-font-geo);
+}
+
+/* 状态标签跟随全局字号（ak-tag 默认 0.6875rem 过小） */
+.ak-tag { font-size: 0.95rem; }
+
+html[data-theme='light'] {
+  --ak-surface-canvas: #f3f2ee;
+  --ak-surface-panel: rgba(255, 255, 255, 0.94);
+  --ak-surface-muted: rgba(238, 237, 233, 0.94);
+  /* 亮色下当前科目卡片改用纸面底，避免深灰底配深色文字 */
+  --ak-surface-raised: rgba(255, 255, 255, 0.95);
+  --ak-command-muted: rgba(27, 29, 31, 0.62);
+  --ak-text-primary: #1b1d1f;
+  --ak-text-secondary: rgba(27, 29, 31, 0.64);
+  --ak-text-inverse: #f8f8f5;
+  --ak-signal-info: #0075a8;
+  --ak-signal-action: #b98a00;
+  color-scheme: light;
+}
+
+/* [layout] 左右分栏 + 可拖拽分隔线 */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--app-font-geo);
+  background: var(--ak-surface-canvas);
+  color: var(--ak-text-primary);
+}
+
+/* 暗色主题下科目行改用深色面板：ak 的 --ak-surface-panel 是纸面色，
+   深底上会出现白底灰字 */
+:root {
+  color-scheme: dark;
+  --ak-surface-panel: rgba(33, 36, 39, 0.92);
+  --ak-surface-muted: rgba(26, 29, 31, 0.9);
+}
+
+#app {
+  display: grid;
+  grid-template-columns: var(--split, 58%) 12px minmax(40%, 1fr);
+  height: 100%;
+}
+
+.pane { min-width: 0; min-height: 0; }
+
+/* [left] 时钟区 */
+.pane-left {
+  display: flex;
+  flex-direction: column;
+  padding: var(--ak-space-5);
+}
+
+.pane-left__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ak-space-4);
+  width: 100%;
+  min-height: 0;
+}
+
+.brand {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--ak-space-3);
+}
+
+.brand__code {
+  font-size: 0.9rem;
+  letter-spacing: var(--ak-type-wide);
+  color: var(--ak-text-secondary);
+  white-space: nowrap;
+}
+
+.brand__date {
+  font-size: 1.05rem;
+  color: var(--ak-text-secondary);
+  white-space: nowrap;
+}
+
+.clock-block {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: 0;
+}
+
+.clock {
+  width: 100%;
+  font-weight: 600;
+  color: var(--ak-text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* 人文无衬线（时钟/倒计时） */
+.clock-font { font-family: var(--app-font-human); }
+
+/* [current] 当前科目卡片 */
+.current-card {
+  padding: var(--ak-density-panel-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ak-space-3);
+}
+
+.current-card__name {
+  font-weight: 700;
+  font-size: 2.35rem;
+  line-height: 1.15;
+  /* 当前科目名是整块文本，禁止按字符折行 */
+  white-space: nowrap;
+  overflow: hidden;
+  word-break: keep-all;
+}
+
+.current-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--ak-space-3);
+  min-width: 0;
+}
+
+.current-card__range {
+  font-size: 1.05rem;
+  color: var(--ak-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.current-card__count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.current-card__progress { margin-top: var(--ak-space-1); }
+
+/* [splitter] 分隔线 */
+.splitter {
+  cursor: col-resize;
+  position: relative;
+  touch-action: none;
+  background: transparent;
+}
+
+.splitter::before {
+  content: '';
+  position: absolute;
+  inset: 0 5px;
+  background: var(--ak-text-secondary);
+  opacity: 0.35;
+  transition: opacity var(--ak-motion-fast) var(--ak-ease-standard);
+}
+
+.splitter:hover::before,
+.splitter--active::before {
+  opacity: 0.9;
+  background: var(--ak-signal-info);
+}
+
+.splitter__grip {
+  position: absolute;
+  top: var(--ak-space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 44px;
+  background: var(--ak-signal-info);
+}
+
+/* [right] 科目列表 */
+.pane-right {
+  display: flex;
+  flex-direction: column;
+  padding: var(--ak-space-5);
+  gap: var(--ak-space-4);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ak-space-3);
+}
+
+.toolbar__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--ak-space-4);
+  flex-shrink: 0;
+}
+
+.lang-opts {
+  display: flex;
+  align-items: center;
+  gap: var(--ak-space-3);
+  flex-shrink: 0;
+}
+
+.lang-opts .ak-choice__label {
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.toolbar__title {
+  margin: 0;
+  font-size: 1.3rem;
+  letter-spacing: var(--ak-type-wide);
+  white-space: nowrap;
+}
+
+.toolbar__sub {
+  font-size: 0.85rem;
+  color: var(--ak-text-secondary);
+  margin-left: var(--ak-space-2);
+}
+
+.subject-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ak-space-2);
+  padding-right: 2px;
+}
+
+.subject-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--ak-space-2) var(--ak-space-4);
+  align-items: center;
+  padding: var(--ak-space-2) var(--ak-space-3);
+  background: var(--ak-surface-panel);
+  border-left: var(--ak-line-strong) solid var(--ak-signal-disabled);
+}
+
+.subject-row--active { border-left-color: var(--ak-signal-info); }
+.subject-row--next { border-left-color: var(--ak-signal-action); }
+.subject-row--past { opacity: 0.55; }
+
+.subject-row__name {
+  font-weight: 600;
+  font-size: 1.55rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.subject-row__time {
+  font-size: 1.25rem;
+  color: var(--ak-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.subject-row__side {
+  display: flex;
+  align-items: center;
+  gap: var(--ak-space-3);
+  white-space: nowrap;
+}
+
+.subject-row__duration {
+  font-size: 1.25rem;
+  color: var(--ak-text-secondary);
+}
+
+.list-empty {
+  color: var(--ak-text-secondary);
+  padding: var(--ak-space-5);
+  text-align: center;
+}
+
+/* [editor] 编辑对话框：ak-dialog 硬编码深色底，而 label/input 是硬编码纸面色，
+   统一改为纸面弹窗；弹窗内的语义 token 一并固定为浅底取值，
+   避免暗色主题下弹窗出现浅色文字 */
+.ak-dialog {
+  --ak-text-primary: #1b1d1f;
+  --ak-text-secondary: rgba(27, 29, 31, 0.64);
+  --ak-signal-info: #0075a8;
+  /* ak-button--action 的底色直接引用主色板 */
+  --ak-color-primary: #0075a8;
+  /* 弹窗固定纸面底，原生控件（日期/时间选择器图标）按浅色渲染 */
+  color-scheme: light;
+  background: #f3f4ef;
+  color: #111315;
+}
+
+/* ak-dialog__body 硬编码灰字、ak-button 硬编码白字，纸面底上不可读 */
+.ak-dialog .ak-dialog__body { color: #111315; }
+.ak-dialog .ak-button { color: #111315; }
+.ak-dialog .ak-button--action { color: #fff; background-color: #0075a8; }
+
+/* 暗色主题下复选框标签是硬编码深色，随主题取前景色 */
+.ak-choice__label { color: var(--ak-text-primary); }
+
+/* ak-dialog 标题被内部高优先级规则设为浅色，纸面底上不可读 */
+.ak-dialog .ak-dialog__title { color: #111315; }
+
+/* ak-dialog 以 inset:0 + margin:auto 居中，尺寸不定会被拉伸，
+   用 fit-content 让弹窗宽高随内容自适应 */
+.editor-dialog {
+  width: fit-content;
+  max-width: min(96vw, 1100px);
+  height: fit-content;
+  max-height: 90vh;
+}
+
+.editor-dialog .ak-dialog__body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ak-space-3);
+}
+
+/* 编辑表格：表头与数据行共用同一套列轨道（subgrid），列宽随内容自适应 */
+.editor-table {
+  display: grid;
+  grid-template-columns: minmax(7em, 1.3fr) auto auto auto auto auto auto;
+  row-gap: var(--ak-space-2);
+  column-gap: var(--ak-space-2);
+  justify-content: start;
+}
+
+#editor-rows { display: contents; }
+
+.editor-head,
+.editor-row {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  gap: var(--ak-space-2);
+  align-items: center;
+}
+
+/* 列头对齐列内容并加大字号 */
+.editor-head .ak-label { font-size: 0.95rem; }
+
+.editor-row .ak-input {
+  width: auto; /* ak-input 基础样式是 width:100%，会撑满列导致错位 */
+  field-sizing: content;
+  min-height: 2.2rem;
+  padding: 0.3rem 0.5rem;
+}
+
+.editor-row .editor-name {
+  min-width: 6em;
+  max-width: 20em;
+}
+
+.editor-row .editor-duration { white-space: nowrap; }
+
+/* 编辑行的小图标按钮（上移/下移/删除） */
+.icon-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--ak-radius-subtle);
+  color: var(--ak-text-secondary);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--ak-motion-fast) var(--ak-ease-standard);
+}
+
+.icon-btn:hover { color: var(--ak-signal-info); }
+.icon-btn:hover[data-act='del'] { color: var(--ak-signal-danger); }
+
+/* 工具栏纯色图标按钮（主题/编辑/锁定） */
+.tool-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--ak-radius-subtle);
+  color: var(--ak-text-primary);
+  cursor: pointer;
+  transition: color var(--ak-motion-fast) var(--ak-ease-standard);
+}
+
+.tool-btn:hover { color: var(--ak-signal-info); }
+.tool-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+/* [scale] 字号调节 */
+.scale-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ak-space-2);
+  padding-top: var(--ak-space-2);
+  border-top: var(--ak-line-hairline) solid var(--ak-text-secondary);
+}
+
+.scale-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ak-space-2);
+}
+
+.scale-row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr 3.2rem;
+  gap: var(--ak-space-2);
+  align-items: center;
+}
+
+.scale-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--ak-signal-info);
+}
+
+.scale-value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ak-text-secondary);
+}
+
+/* [notice] 通知位置 */
+.notice-stack {
+  position: fixed;
+  right: var(--ak-space-4);
+  bottom: var(--ak-space-4);
+  z-index: 60;
+  max-width: min(360px, 80vw);
+}
+
+/* [lock] 锁定态：隐藏编辑/主题/语言选项/分隔线 */
+.app--locked .splitter { pointer-events: none; visibility: hidden; }
+.app--locked #btn-edit,
+.app--locked #btn-theme,
+.app--locked .lang-opts { display: none; }
+
+/* [lang-mask] 科目开始时按勾选隐藏全局英文或中文（仅作用于展示文本） */
+.app-mask-en [data-lang='en'] { display: none !important; }
+.app-mask-zh [data-lang='zh'] { display: none !important; }
+/* 单语模式下隐藏语言分隔符 */
+.app-mask-en .lbl-sep,
+.app-mask-zh .lbl-sep { display: none !important; }
+
+/* 通用单行文本适配 */
+.fit {
+  white-space: nowrap;
+  overflow: hidden;
+}
