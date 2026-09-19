@@ -23,17 +23,17 @@
 ## 开发
 
 - 前端源码位于 `webapp/`：`pnpm install && pnpm build`，产物输出到 `assets/web/`。
-- `assets/web/` 为构建产物，但随仓库提交，Flutter 构建不依赖 Node 环境。
+- `assets/web/` 为构建产物，但随仓库提交，Flutter 构建不依赖 Node。注意：Flutter 的 pubspec 目录资产声明**不递归子目录**，因此 `assets/web/` 与 `assets/web/assets/` 需同时声明。Node 环境。
 - Flutter 侧仅 [main.dart](lib/main.dart)：启动本地 HTTP 服务从资产内存中提供页面，WebView 加载 `127.0.0.1` 随机端口，并注册 `saveConfig` JS 桥。
 - 运行：`flutter run -d windows`；打包：`flutter build windows`。
 
 ## 开源许可
 
-| 组件 | 许可证 |
-| --- | --- |
-| ak-ui (@yunyoujun/ak-ui) | MIT |
-| Poppins | SIL OFL 1.1 |
-| Fira Sans | SIL OFL 1.1 |
-| Noto Sans SC | SIL OFL 1.1 |
-| flutter_inappwebview | Apache-2.0 |
-| Vite | MIT |
+| 组件                     | 许可证      |
+| ------------------------ | ----------- |
+| ak-ui (@yunyoujun/ak-ui) | MIT         |
+| Poppins                  | SIL OFL 1.1 |
+| Fira Sans                | SIL OFL 1.1 |
+| Noto Sans SC             | SIL OFL 1.1 |
+| flutter_inappwebview     | Apache-2.0  |
+| Vite                     | MIT         |

@@ -168,7 +168,7 @@ function renderCurrent(now) {
   } else if (sorted.length) {
     set('全部科目已结束', tagText('past'), 'ak-tag--neutral', '--', '--:--:--', null)
   } else {
-    set('等待课表数据', tagText('idle'), 'ak-tag--neutral', '--', '--:--:--', null)
+    set('等待数据', tagText('idle'), 'ak-tag--neutral', '--', '--:--:--', null)
   }
   state.hasActive = !!active
   applyMask(!!active)

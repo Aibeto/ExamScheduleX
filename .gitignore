@@ -27,13 +27,17 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
 /coverage/
 
-# webapp
+# Windows build intermediates
+/windows/flutter/ephemeral/
+
+# webapp dependencies (构建产物 assets/web/ 需随仓库提交，供 Flutter 构建免 Node 使用，勿加入忽略)
 webapp/node_modules/
 
 # Symbolication related
